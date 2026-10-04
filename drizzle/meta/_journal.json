@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1790882725327,
+      "tag": "0000_giant_radioactive_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790882895093,
+      "tag": "0001_unusual_dagger",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790883123090,
+      "tag": "0002_abandoned_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790883558037,
+      "tag": "0003_colorful_zzzax",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790883976784,
+      "tag": "0004_melodic_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790971407286,
+      "tag": "0005_left_gambit",
+      "breakpoints": true
+    }
+  ]
+}

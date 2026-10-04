@@ -1,0 +1,51 @@
+{
+  "name": "fittrack",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts && next start -H 0.0.0.0",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
+    "password:hash": "node --import tsx scripts/password.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.0.0",
+    "drizzle-orm": "^0.45.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.20.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.3.8",
+    "prettier": "^3.9.9",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.0"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.0"
+    }
+  }
+}
