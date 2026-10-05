@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { proposal } from "../tests/fixtures/ai";
+import { proposal, assistantInput } from "../tests/fixtures/ai";
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -8,17 +8,43 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "Anmelden →" }).click();
   await expect(page).toHaveURL("http://localhost:3100/");
 }
-async function enableAssistant(page: Page) {
+async function enableAssistant(page: Page, needsWelcome = false) {
+  await page.route("**/api/ai/chatgpt", (route) => {
+    if (route.request().method() === "POST") {
+      needsWelcome = false;
+      return route.fulfill({ json: { ok: true } });
+    }
+    return route.fulfill({
+      json: { models: [{ id: "account-model", name: "Testmodell" }] },
+    });
+  });
   await page.route("**/api/ai/config", (route) =>
-    route.fulfill({ json: { available: true } }),
+    route.fulfill({
+      json: {
+        available: true,
+        local: true,
+        active: "mock-account",
+        accounts: [
+          {
+            id: "mock-account",
+            label: "Testkonto",
+            connected: true,
+            model: "account-model",
+          },
+        ],
+        needsWelcome,
+        pending: false,
+        message: "",
+      },
+    }),
   );
 }
 
-test("AI routes require login/origin and missing key leaves manual editor usable", async ({
+test("AI routes require login/origin and paid transcription stays disabled even with API key", async ({
   page,
   request,
 }) => {
-  for (const path of ["plan", "transcribe", "accept"])
+  for (const path of ["plan", "transcribe", "accept", "chatgpt", "prompt"])
     expect((await request.post(`/api/ai/${path}`, { data: {} })).status()).toBe(
       401,
     );
@@ -31,7 +57,7 @@ test("AI routes require login/origin and missing key leaves manual editor usable
   expect(csrf.status()).toBe(403);
   await page.goto("/plans/new");
   await expect(
-    page.getByText("Der KI-Assistent ist noch nicht eingerichtet.", {
+    page.getByText("Mit deinem ChatGPT-Abo · ohne API-Key", {
       exact: false,
     }),
   ).toBeVisible();
@@ -41,9 +67,15 @@ test("AI routes require login/origin and missing key leaves manual editor usable
   await expect(page.getByLabel("Planname")).toBeEditable();
   const missing = await page.request.post("/api/ai/plan", {
     headers: { origin: "http://localhost:3100" },
-    data: {},
+    data: assistantInput,
   });
-  expect(missing.status()).toBe(503);
+  expect(missing.status()).toBe(409);
+  const audio = await page.request.post("/api/ai/transcribe", {
+    headers: { origin: "http://localhost:3100", "Content-Type": "audio/webm" },
+    data: "old-tab-audio",
+  });
+  expect(audio.status()).toBe(410);
+  expect(await audio.text()).toContain("deaktiviert");
   const res = await page.request.get("/plans/new");
   expect(res.headers()["permissions-policy"]).toContain("microphone=(self)");
 });
@@ -51,7 +83,7 @@ test("AI routes require login/origin and missing key leaves manual editor usable
 test("optional profile, explicit review, accepted-only import and normal plan save", async ({
   page,
 }) => {
-  await enableAssistant(page);
+  await enableAssistant(page, true);
   let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/ai/plan", async (route) => {
     submitted = route.request().postDataJSON();
@@ -63,6 +95,10 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   }[];
   const plansBefore = await (await page.request.get("/api/plans")).json();
   await page.goto("/plans/new");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Verstanden", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+
   await page
     .getByLabel("Deine Trainingswünsche")
     .fill(
@@ -143,21 +179,14 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   ).toBeVisible();
 });
 
-test("recording only uploads after action, transcript stays editable and drafts need replacement confirmation", async ({
+test("browser dictation never uploads audio and drafts need replacement confirmation", async ({
   page,
-  context,
 }) => {
   await enableAssistant(page);
-  await context.grantPermissions(["microphone"], {
-    origin: "http://localhost:3100",
-  });
+  await mockDictation(page);
   let uploads = 0;
-  await page.route("**/api/ai/transcribe", async (route) => {
-    uploads++;
-    expect(route.request().postDataBuffer()!.length).toBeGreaterThan(16);
-    await route.fulfill({
-      json: { text: "Ich möchte Bankdrücken und Klimmzüge trainieren." },
-    });
+  page.on("request", (req) => {
+    if (req.url().includes("/api/ai/transcribe")) uploads++;
   });
   await page.route("**/api/ai/plan", (route) =>
     route.fulfill({ json: proposal }),
@@ -166,21 +195,20 @@ test("recording only uploads after action, transcript stays editable and drafts 
   await page.goto("/plans/new");
   await page.getByLabel("Planname").fill("Mein vorhandener Entwurf");
   await page.getByRole("button", { name: "Einsprechen", exact: true }).click();
-  await expect(page.getByText(/Aufnahme läuft · [1-9]/)).toBeVisible();
+  await expect(page.getByText(/Diktieren läuft/)).toBeVisible();
   await page
-    .getByRole("button", { name: "Aufnahme stoppen", exact: true })
+    .getByRole("button", { name: "Diktieren stoppen", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "Aufnahme transkribieren", exact: true }),
-  ).toBeVisible();
-  expect(uploads).toBe(0);
+  await expect(page.getByLabel("Erkannter Text")).toHaveValue(
+    "Ich möchte Bankdrücken und Klimmzüge trainieren.",
+  );
   await page
-    .getByRole("button", { name: "Aufnahme transkribieren", exact: true })
+    .getByRole("button", { name: "Text übernehmen", exact: true })
     .click();
   await expect(page.getByLabel("Deine Trainingswünsche")).toHaveValue(
     "Ich möchte Bankdrücken und Klimmzüge trainieren.",
   );
-  expect(uploads).toBe(1);
+  expect(uploads).toBe(0);
   await page
     .getByLabel("Deine Trainingswünsche")
     .fill("Ich möchte Bankdrücken mit 80 kg und Klimmzüge trainieren.");
@@ -213,12 +241,7 @@ test("microphone denial and failed generation keep typing and retry available", 
   page,
 }) => {
   await enableAssistant(page);
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
-      value: () =>
-        Promise.reject(new DOMException("Denied", "NotAllowedError")),
-    });
-  });
+  await mockDictation(page, true);
   await page.route("**/api/ai/plan", (route) =>
     route.fulfill({
       status: 429,
@@ -244,4 +267,142 @@ test("microphone denial and failed generation keep typing and retry available", 
   await expect(
     page.getByRole("button", { name: "Vorschläge erstellen →" }),
   ).toBeEnabled();
+});
+
+async function mockDictation(page: Page, denied = false) {
+  await page.addInitScript((denied) => {
+    class Speech {
+      lang = "";
+      continuous = true;
+      interimResults = true;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start() {
+        setTimeout(() => {
+          if (denied) this.onerror?.({ error: "not-allowed" });
+          else
+            this.onresult?.({
+              results: [
+                {
+                  isFinal: true,
+                  0: {
+                    transcript:
+                      "Ich möchte Bankdrücken und Klimmzüge trainieren.",
+                  },
+                },
+              ],
+            });
+        }, 10);
+      }
+      stop() {
+        this.onend?.();
+      }
+      abort() {
+        this.onend?.();
+      }
+    }
+    Object.defineProperty(window, "SpeechRecognition", {
+      value: Speech,
+      configurable: true,
+    });
+  }, denied);
+}
+
+test("manual ChatGPT roundtrip works without a subscription connection and validates pasted output", async ({
+  page,
+}) => {
+  await page.route("**/api/ai/config", (route) =>
+    route.fulfill({
+      json: {
+        available: false,
+        local: false,
+        active: null,
+        accounts: [],
+        pending: false,
+        message: "",
+      },
+    }),
+  );
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "SpeechRecognition", {
+      value: undefined,
+      configurable: true,
+    });
+    Object.defineProperty(window, "webkitSpeechRecognition", {
+      value: undefined,
+      configurable: true,
+    });
+  });
+  let inferenceCalls = 0;
+  page.on("request", (req) => {
+    if (/\/api\/ai\/(plan|transcribe)$/.test(req.url())) inferenceCalls++;
+  });
+  await login(page);
+  await page.goto("/plans/new");
+  await page.getByRole("button", { name: "Einsprechen", exact: true }).click();
+  await expect(
+    page.getByText(/Dieser Browser bietet keine Diktierfunktion/),
+  ).toBeVisible();
+  await page
+    .getByLabel("Deine Trainingswünsche")
+    .fill("Ich möchte Bankdrücken und Klimmzüge trainieren.");
+  await page
+    .getByRole("button", { name: "ChatGPT-Anfrage vorbereiten" })
+    .click();
+  await expect(page.getByLabel("Anfrage für ChatGPT")).toHaveValue(
+    /Meine Angaben/,
+  );
+  await page.getByLabel("Antwort aus ChatGPT").fill('{"name":"broken"}');
+  await page.getByRole("button", { name: "Vorschlag prüfen" }).click();
+  await expect(
+    page.getByText(/Der eingefügte Vorschlag ist ungültig/),
+  ).toBeVisible();
+  await page
+    .getByLabel("Antwort aus ChatGPT")
+    .fill("```json\n" + JSON.stringify(proposal) + "\n```");
+  await page.getByRole("button", { name: "Vorschlag prüfen" }).click();
+  await expect(
+    page.getByRole("heading", { name: `Dein Vorschlag: ${proposal.name}` }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Bankdrücken annehmen, Oberkörper A" })
+    .click();
+  await page
+    .getByRole("button", { name: "Klimmzüge ablehnen, Oberkörper A" })
+    .click();
+  await page
+    .getByRole("button", { name: "Auswahl in den Plan übernehmen" })
+    .click();
+  await expect(page.getByLabel("Planname")).toHaveValue(proposal.name);
+  expect(inferenceCalls).toBe(0);
+});
+
+test("local OAuth handshake opens a loopback listener, rejects forged callbacks and can be cancelled", async ({
+  page,
+}) => {
+  await login(page);
+  const response = await page.request.post("/api/ai/chatgpt", {
+    headers: { origin: "http://localhost:3100" },
+    data: { action: "connect" },
+  });
+  expect(response.status()).toBe(200);
+  const url = new URL((await response.json()).url);
+  expect(url.origin).toBe("https://auth.openai.com");
+  expect(url.searchParams.get("client_id")).toBe("dynamic_agent_client");
+  expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+  const callback = new URL(url.searchParams.get("redirect_uri")!);
+  expect(callback.hostname).toBe("127.0.0.1");
+  callback.searchParams.set("state", "forged");
+  expect((await page.request.get(callback.href)).status()).toBe(403);
+  expect(
+    (await (await page.request.get("/api/ai/config")).json()).pending,
+  ).toBe(true);
+  await page.request.post("/api/ai/chatgpt", {
+    headers: { origin: "http://localhost:3100" },
+    data: { action: "cancel" },
+  });
+  const status = await (await page.request.get("/api/ai/config")).json();
+  expect(status.pending).toBe(false);
+  expect(status.available).toBe(false);
 });

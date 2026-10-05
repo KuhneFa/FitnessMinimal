@@ -93,3 +93,27 @@ Abschließende Prüfungen:
 - `git diff --check`: bestanden. Keine zusätzlichen npm-Abhängigkeiten.
 
 Offen: echte OpenAI-Anfragen (lokal kein Schlüssel eingerichtet), echte iPhone-/Safari-/PWA-Aufnahme und Deployment. Diese Prüfungen sind im manuellen Testplan ergänzt und ausdrücklich nicht als bestanden markiert. Die vorigen Betriebseinschränkungen aus Phase 8 bleiben bestehen. Profil und Audio werden nicht dauerhaft in FitTrack gespeichert; Verarbeitung/Aufbewahrung beim Anbieter ist separat in README und Security Review erläutert.
+
+## Phase 10 – ChatGPT-Abo ohne zusätzliche API-Abrechnung – 05.10.2026
+
+Neue Vorgabe: vorhandenes Plus-Abo nutzen; keine zusätzlichen API-Ausgaben. Die bezahlte API-Anbindung aus Phase 9 wurde ersetzt. Ein vorhandener `OPENAI_API_KEY` wird nicht verwendet, und die frühere Transkriptionsroute liefert nach Zugriffsschutz HTTP 410.
+
+### 10a – Abrechnungstrennung und ChatGPT-Verbindung
+
+Implementiert: offizieller lokaler OAuth-Ablauf mit PKCE, State, Nonce, Loopback-Listener, JWKS-/ID-Token-Prüfung, beständiger Host-ID, getrennten Kontoregistrierungen, atomarer Zugangsdatenablage mit 0600, serialisiertem Refresh und Trennung einschließlich Revocation-Versuch. Kontobezogene Modellliste; Responses mit Abo-Token, `store:false`, `stream:true`, begrenztem Datenstrom und erforderlichem Abschlussereignis. Keine API-Key- oder Transkriptions-Fallbacks. Lokaler Prompt-Export für den manuellen ChatGPT-Import.
+
+Phasenprüfung vor UI: Typecheck, Lint (noch eine Warnung im inzwischen ersetzten Aufnahme-Component), **47 Unit-/Integrationstests** und Production Build bestanden.
+
+### 10b – Diktat, Anmeldung und Import
+
+Implementiert: Kontoverbindung und Modellauswahl im Planeditor, einmaliger Abo-Hinweis mit Link zur Nutzungsverwaltung, Abbruch einer laufenden Anmeldung (auch beim FitTrack-Logout), Browserdiktat mit prüfbarem Text und Tastatur-Fallback. Kopier-/Importablauf für ChatGPT ohne direkten Modellaufruf durch FitTrack, einschließlich JSON-Validierung und Schutz vor überholten Angaben. Einzelentscheidungen und Planspeicherung bleiben erhalten. Öffentliche/Railway-Installationen verwenden den Kopier-/Importweg; der lokale OAuth-Callback wird auf dem Mac abgeschlossen, auf dem der Server läuft.
+
+Abschlussprüfung:
+
+- Typecheck, ESLint ohne Warnungen und Production Build: bestanden.
+- **47 Unit-/Integrationstests bestanden**, einschließlich ID-Token-Signatur/Audience/Nonce/Ablauf, Callback-Manipulation, fehlender Abo-Freigabe trotz API-Key, Tokenrotation, Dateirechten, SSE-Chunkgrenzen, unvollständigen Antworten, späten Abo-Limits und bestätigtem Import.
+- **8 Chromium-End-to-End-Tests bestanden**, darunter Diktat mit simulierter Web-Spracherkennung ohne Audio-Upload, Mikrofonverweigerung, fehlende Web-Spracherkennung, ChatGPT-Import mit ungültiger/gültiger Antwort, Begrüßungsdialog, Modell-/Profilansicht, echter lokaler OAuth-Listener mit ungültigem Callback und Abbruch sowie die bestehenden Workout-/Planeditorabläufe.
+- axe: keine Befunde in den geprüften Regeln auf den geprüften Screens. Breiten 320/375/390/430 ohne horizontalen Überlauf, mobile Assistentenansicht visuell geprüft.
+- `git diff --check`: bestanden. Keine zusätzlichen npm-Abhängigkeiten.
+
+Nicht als live bestätigt: persönliche ChatGPT-Anmeldung/Einwilligung, Konto-/Modellfreigabe und tatsächliche Modellantwort, echte Safari-/iPhone-Web-Spracherkennung, Railway/Docker-Deployment. Alle Modellantworten und die Browser-Spracherkennung der automatisierten Tests sind simuliert. Keine kostenpflichtige API-Anfrage und keine Guthaben-Aufladung ausgeführt. Der Nutzer schließt die Anmeldung selbst über „Continue with ChatGPT“ ab. Zusätzliche Guthaben-/Mehrnutzungseinstellungen des ChatGPT-Kontos liegen außerhalb der App und werden in der Oberfläche verlinkt.

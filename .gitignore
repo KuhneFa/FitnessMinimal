@@ -7,3 +7,6 @@ data/
 *.tsbuildinfo
 test-results/
 playwright-report/
+
+# ChatGPT OAuth credentials (also for custom database directories).
+chatgpt-connection.json*

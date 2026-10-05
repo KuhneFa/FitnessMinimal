@@ -10,7 +10,7 @@ const env = {
   PASSWORD_HASH: hashPassword("test-password-123"),
   APP_ORIGIN: "http://localhost:3100",
   // Browser tests mock AI responses; never use a developer's real API key.
-  OPENAI_API_KEY: "",
+  OPENAI_API_KEY: "e2e-paid-key-must-never-be-used",
 };
 const seed = spawnSync(
   process.execPath,

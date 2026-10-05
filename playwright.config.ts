@@ -11,12 +11,6 @@ export default defineConfig({
       use: {
         ...devices["iPhone 13"],
         defaultBrowserType: "chromium",
-        launchOptions: {
-          args: [
-            "--use-fake-device-for-media-stream",
-            "--use-fake-ui-for-media-stream",
-          ],
-        },
       },
     },
     ...(process.env.TEST_WEBKIT

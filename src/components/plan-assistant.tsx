@@ -8,6 +8,8 @@ import {
 } from "@/lib/ai-contract";
 import type { PlanInput } from "@/lib/plans";
 import { VoiceInput } from "./voice-input";
+import { ChatGptConnection } from "./chatgpt-connection";
+import { parsePlanResponse, PlanResponseError } from "@/lib/plan-response";
 type Choice = "accepted" | "rejected";
 type Imported = {
   plan: PlanInput;
@@ -40,7 +42,10 @@ export function PlanAssistant({
   onApply: (value: Imported) => void;
 }) {
   const [available, setAvailable] = useState<boolean | null>(null);
-  const [configError, setConfigError] = useState("");
+  const [identity, setIdentity] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [importText, setImportText] = useState("");
+  const [exported, setExported] = useState("");
   const [wishes, setWishes] = useState("");
   const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
   const [proposal, setProposal] = useState<PlanProposal | null>(null);
@@ -54,31 +59,11 @@ export function PlanAssistant({
   const [applying, setApplying] = useState(false);
   const request = useRef<AbortController | null>(null);
   const resultHeading = useRef<HTMLHeadingElement | null>(null);
-  const fingerprint = JSON.stringify({ wishes, profile });
+  const fingerprint = JSON.stringify({ wishes, profile, identity });
   const stale = !!proposal && submitted !== fingerprint;
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/ai/config", { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error();
-        setAvailable((await res.json()).available === true);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted)
-          setConfigError(
-            "KI-Verfügbarkeit konnte nicht geprüft werden. Bitte Seite neu laden.",
-          );
-      });
-    return () => {
-      controller.abort();
-      request.current?.abort();
-    };
-  }, []);
-  async function generate(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setNotice("");
-    const parsed = assistantInputSchema.safeParse({
+  useEffect(() => () => request.current?.abort(), []);
+  function inputData() {
+    return assistantInputSchema.safeParse({
       wishes,
       profile: {
         age: optionalNumber(profile.age),
@@ -89,16 +74,77 @@ export function PlanAssistant({
         daysPerWeek: optionalNumber(profile.daysPerWeek),
       },
     });
+  }
+  async function preparePrompt() {
+    setError("");
+    setNotice("");
+    const parsed = inputData();
     if (!parsed.success) {
       setError(
-        "Bitte beschreibe deine Wünsche mit mindestens 10 Zeichen und prüfe die optionalen Angaben.",
+        "Bitte beschreibe deine Wünsche mit 10 bis 6.000 Zeichen und prüfe die optionalen Angaben. Dein vollständiger Text bleibt im Eingabefeld erhalten.",
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const response = await fetch("/api/ai/prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setPrompt(data.prompt);
+      setExported(fingerprint);
+      setImportText("");
+    } catch {
+      setError(
+        "Die Anfrage konnte nicht vorbereitet werden. Bitte erneut versuchen.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  function importProposal() {
+    setError("");
+    if (!exported || exported !== fingerprint) {
+      setError(
+        "Deine Angaben wurden geändert. Bereite zuerst eine neue ChatGPT-Anfrage vor.",
+      );
+      return;
+    }
+    try {
+      const parsed = parsePlanResponse(importText);
+      setProposal(parsed);
+      setChoices({});
+      setSubmitted(fingerprint);
+      setReplace(false);
+      setImportText("");
+      setPrompt("");
+      setTimeout(() => resultHeading.current?.focus(), 0);
+    } catch (error) {
+      setError(
+        error instanceof PlanResponseError
+          ? error.message
+          : "Der eingefügte Vorschlag konnte nicht gelesen werden. Es wurde nichts übernommen.",
+      );
+    }
+  }
+  async function generate(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    const parsed = inputData();
+    if (!parsed.success) {
+      setError(
+        "Bitte beschreibe deine Wünsche mit 10 bis 6.000 Zeichen und prüfe die optionalen Angaben. Dein vollständiger Text bleibt im Eingabefeld erhalten.",
       );
       return;
     }
     setBusy(true);
     const controller = new AbortController();
     request.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 55000);
+    const timeout = setTimeout(() => controller.abort(), 100000);
     try {
       const res = await fetch("/api/ai/plan", {
         method: "POST",
@@ -180,6 +226,9 @@ export function PlanAssistant({
       setChoices({});
       setWishes("");
       setProfile(emptyProfile);
+      setPrompt("");
+      setImportText("");
+      setExported("");
       setNotice(
         "Deine Auswahl ist im Planeditor. Prüfe die Startgewichte und speichere deinen Plan.",
       );
@@ -206,20 +255,15 @@ export function PlanAssistant({
         Deine Wunschübungen, dein Ziel, dein Rhythmus. Daraus wird ein
         Vorschlag, den du Übung für Übung bestätigst.
       </p>
-      {available === false && (
-        <p className="assistant-info" role="status">
-          Der KI-Assistent ist noch nicht eingerichtet. Ergänze auf dem Server
-          den OpenAI-API-Schlüssel. Den Planeditor unten kannst du sofort
-          nutzen.
-        </p>
-      )}
-      {configError && (
-        <p className="error" role="alert">
-          {configError}
-        </p>
-      )}
+      <ChatGptConnection
+        disabled={busy || applying || voiceBusy}
+        onChange={(connected, nextIdentity) => {
+          setAvailable(connected);
+          setIdentity(nextIdentity);
+        }}
+      />
       <VoiceInput
-        disabled={available !== true || busy || applying}
+        disabled={busy || applying}
         onBusyChange={setVoiceBusy}
         onTranscript={(text) => {
           setWishes((old) =>
@@ -241,7 +285,6 @@ export function PlanAssistant({
               value={wishes}
               onChange={(e) => setWishes(e.target.value)}
               minLength={10}
-              maxLength={6000}
               required
               rows={4}
               placeholder="Ich möchte zweimal pro Woche trainieren. Bankdrücken mit 80 kg und Klimmzüge sollen dabei sein. Mein Fokus ist Muskelaufbau, Beine möchte ich ebenfalls trainieren."
@@ -250,6 +293,13 @@ export function PlanAssistant({
           <small className="muted">
             Du kannst alle Angaben auch direkt einsprechen oder hier eintippen.
           </small>
+          {wishes.length > 6000 && (
+            <p className="error" role="status">
+              {wishes.length.toLocaleString("de-DE")} Zeichen: Dein vollständiger
+              Text ist erhalten. Bitte kürze ihn auf höchstens 6.000 Zeichen,
+              bevor du einen Vorschlag anforderst.
+            </p>
+          )}
           <details className="profile-details">
             <summary>Über dich & dein Training · optional</summary>
             <div className="profile-grid">
@@ -347,8 +397,8 @@ export function PlanAssistant({
         <p className="assistant-privacy">
           Mit „Vorschläge erstellen“ sendest du den Text, ausgefüllte Angaben
           und die Namen deiner vorhandenen Übungen an OpenAI. FitTrack speichert
-          weder diese Angaben noch die Aufnahme dauerhaft. Der API-Zugang wird
-          separat abgerechnet.
+          diese Angaben nicht dauerhaft. Die Anfrage nutzt dein verbundenes
+          ChatGPT-Abo. Es gibt keinen Wechsel zu einer kostenpflichtigen API.
         </p>
         <div className="row">
           <button
@@ -369,6 +419,93 @@ export function PlanAssistant({
           )}
         </div>
       </form>
+      <details
+        className="profile-details"
+        open={available === false ? true : undefined}
+      >
+        <summary>Über ChatGPT kopieren &amp; importieren</summary>
+        <div className="stack" style={{ marginTop: 16 }}>
+          <p>
+            Nutze dein vorhandenes Abo direkt in ChatGPT. Bereite die Anfrage
+            vor, füge sie in ChatGPT ein und kopiere die Antwort zurück. Danach
+            bestätigst du hier jede Übung.
+          </p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy || applying || voiceBusy}
+            onClick={preparePrompt}
+          >
+            ChatGPT-Anfrage vorbereiten
+          </button>
+          {prompt && (
+            <>
+              <label>
+                Anfrage für ChatGPT
+                <textarea
+                  readOnly
+                  rows={5}
+                  value={prompt}
+                  onFocus={(e) => e.target.select()}
+                />
+              </label>
+              <div className="row">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(prompt);
+                      setNotice("Anfrage kopiert. Füge sie in ChatGPT ein.");
+                    } catch {
+                      setNotice(
+                        "Markiere die Anfrage oben und kopiere sie manuell.",
+                      );
+                    }
+                  }}
+                >
+                  Anfrage kopieren
+                </button>
+                <a
+                  href="https://chatgpt.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ChatGPT öffnen ↗
+                </a>
+              </div>
+              {exported !== fingerprint && (
+                <p className="error">
+                  Deine Angaben wurden geändert. Bereite eine neue Anfrage vor.
+                </p>
+              )}
+              <label>
+                Antwort aus ChatGPT
+                <textarea
+                  value={importText}
+                  maxLength={65536}
+                  rows={5}
+                  onChange={(e) => setImportText(e.target.value)}
+                  placeholder="Hier die vollständige JSON-Antwort von ChatGPT einfügen …"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={
+                  busy ||
+                  applying ||
+                  voiceBusy ||
+                  !importText.trim() ||
+                  exported !== fingerprint
+                }
+                onClick={importProposal}
+              >
+                Vorschlag prüfen
+              </button>
+            </>
+          )}
+        </div>
+      </details>
       {error && (
         <p className="error" role="alert">
           {error}

@@ -1,19 +1,12 @@
-import { getDatabase } from "@/db";
-import { authorize, json, errorResponse } from "@/lib/http";
-import { consumeAiBudget } from "@/lib/ai-budget";
-import { readAudio, transcribeAudio, requireOpenAiKey } from "@/lib/openai";
-export const runtime = "nodejs";
+import { authorize, errorResponse, HttpError } from "@/lib/http";
+// Keep the old URL as an explicit cost barrier, including for already-open older tabs.
 export async function POST(request: Request) {
   try {
     await authorize(request);
-    requireOpenAiKey();
-    consumeAiBudget(getDatabase().sqlite, "audio");
-    const audio = await readAudio(request);
-    try {
-      return json({ text: await transcribeAudio(audio) });
-    } finally {
-      audio.bytes.fill(0);
-    }
+    throw new HttpError(
+      410,
+      "Kostenpflichtige Transkription ist deaktiviert. Nutze die Diktierfunktion im Browser oder auf deiner Tastatur.",
+    );
   } catch (e) {
     return errorResponse(e);
   }

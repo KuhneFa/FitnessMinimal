@@ -354,7 +354,7 @@ Voraussetzungen für alle folgenden Tests: ein echtes iPhone, Safari, eine über
 - Erwartetes Ergebnis: Fehler oder fehlende Verbindung werden erkennbar; gespeicherte Daten bleiben erhalten. Es gibt keine lokale Historien-Datenbank, keinen Service-Worker-Cache und nach vollständiger Synchronisierung keinen Eintrag `fittrack-recovery`. Browser kann kleine statische App-Ressourcen normal cachen.
 - Ergebnis: noch nicht getestet
 
-## Phase 9 – Sprache und KI-Planassistent
+## Phase 9 – Sprache und KI-Planassistent (historisch; API-Pfad durch Phase 10 ersetzt)
 
 ### Ohne KI-Schlüssel weiterarbeiten
 
@@ -417,4 +417,52 @@ Voraussetzungen für alle folgenden Tests: ein echtes iPhone, Safari, eine über
 - Voraussetzungen: Separate Testinstallation; Schlüssel testweise ungültig oder Anbieterzugriff unterbrochen.
 - Schritte: Transkription und Vorschläge anfordern. Fehler und erneuten Versuch prüfen. Nach fünf Plananfragen innerhalb von 15 Minuten erneut anfordern.
 - Erwartetes Ergebnis: Verständliche Fehlermeldungen ohne Schlüssel/Anbieterinternas; Eingaben bleiben erhalten. Zeitüberschreitungen beenden den Wartezustand. Limits verhindern weitere Anbieteranfragen; kein automatischer kostenpflichtiger Retry.
+- Ergebnis: noch nicht getestet
+
+
+## Phase 10 – ChatGPT-Abo und Sprache ohne kostenpflichtige API
+
+### Direkte ChatGPT-Anmeldung, Modellauswahl und Abo-Limit
+
+- Testname: Direkte ChatGPT-Anmeldung, Modellauswahl und Abo-Limit
+- Priorität: kritisch
+- Voraussetzungen: FitTrack lokal auf dem Mac, berechtigtes ChatGPT-Konto; keine API-Aufladung. In ChatGPT zusätzliche Guthaben-/Mehrnutzungseinstellungen prüfen.
+- Schritte: Continue with ChatGPT wählen, Anmeldelink auf demselben Mac öffnen, FitTrack freigeben und zurückkehren. Einmaligen Hinweis bestätigen, Modell auswählen und einen Vorschlag erstellen. Später dieselbe Registrierung erneut verbinden und ein anderes Konto separat hinzufügen. Bei Abo-Limit Fehlermeldung und unveränderte Eingaben prüfen.
+- Erwartetes Ergebnis: Nach bestätigter Anmeldung richtige Kontozuordnung und verfügbare Modelle. Keine kostenpflichtige API als Ersatz bei fehlender Freigabe oder Limit. Wiederholte Anmeldung verwendet die vorhandene Registrierung. Vorschläge erfordern weiterhin Einzelentscheidungen.
+- Ergebnis: noch nicht getestet
+
+### Anmeldung abbrechen und Verbindung trennen
+
+- Testname: Anmeldung abbrechen und Verbindung trennen
+- Priorität: kritisch
+- Voraussetzungen: Lokaler Planeditor, optional bereits verbundener ChatGPT-Account.
+- Schritte: Anmeldung starten, abbrechen und nach fünf Minuten prüfen. Eine Verbindung trennen; danach erneut verbinden. Trennung zusätzlich einmal ohne Netzwerk ausführen.
+- Erwartetes Ergebnis: Abgebrochene/abgelaufene Anmeldeversuche werden nicht aktiv. Trennen entfernt lokale Tokens. Bei nicht bestätigbarer Remote-Trennung sichtbarer Hinweis auf ChatGPT-Einstellungen. Andere Konten bleiben erhalten.
+- Ergebnis: noch nicht getestet
+
+### ChatGPT-Import auf iPhone oder gehosteter Installation
+
+- Testname: ChatGPT-Import auf iPhone oder gehosteter Installation
+- Priorität: kritisch
+- Voraussetzungen: FitTrack und ChatGPT erreichbar; kein API-Key nötig.
+- Schritte: Wünsche eingeben, Anfrage vorbereiten und kopieren, in ChatGPT einfügen, JSON-Antwort zurückkopieren. Ungültige Antwort testen, dann gültige Antwort prüfen. Übungen annehmen/ablehnen und speichern. Angaben nach Vorbereitung einmal verändern.
+- Erwartetes Ergebnis: Funktioniert ohne OAuth-Anmeldung der App und ohne Modellanfrage durch FitTrack. Ungültige/überholte Antworten werden nicht übernommen. Nur bestätigte Übungen gelangen in den Plan.
+- Ergebnis: noch nicht getestet
+
+### Browserdiktat, Verwerfen und Tastatur-Fallback
+
+- Testname: Browserdiktat, Verwerfen und Tastatur-Fallback
+- Priorität: kritisch
+- Voraussetzungen: Mac und echtes iPhone/Safari/PWA; Mikrofon und Spracheinstellungen verfügbar.
+- Schritte: Einsprechen starten, stoppen, erkannten Text korrigieren und übernehmen. Diktat verwerfen, Zugriff verweigern, App während Diktat verlassen und Hintergrundwechsel testen. Ohne unterstützte Web-Spracherkennung Mikrofon der Tastatur verwenden.
+- Erwartetes Ergebnis: Kein Audio-Upload zu FitTrack/OpenAI. Erkannter Text erst nach Bestätigung übernommen. Mikrofon/Erkennung beendet bei Verlassen und spätestens 90 Sekunden. Kein endloser Wartezustand. Browseranbieter-Verarbeitung wird transparent beschrieben.
+- Ergebnis: noch nicht getestet
+
+### API-Kostenbarriere und lokale Zugangsdaten
+
+- Testname: API-Kostenbarriere und lokale Zugangsdaten
+- Priorität: kritisch
+- Voraussetzungen: Testinstallation; optional Dummy-OPENAI_API_KEY in Umgebung, Browser-Netzwerkansicht.
+- Schritte: Alte Transkriptionsroute aufrufen, Plan ohne Abo-Verbindung anfordern, danach Import nutzen. Git-Status, Dateirechte der ChatGPT-Verbindung und Browser-Speicher prüfen.
+- Erwartetes Ergebnis: Alte Route gesperrt; kein API-Key-Fallback. Import bleibt nutzbar. Tokens nur serverseitig in ignorierter Datei mit 0600, nicht in Browser-Antworten oder Local Storage. Profildaten nicht dauerhaft in FitTrack gespeichert.
 - Ergebnis: noch nicht getestet

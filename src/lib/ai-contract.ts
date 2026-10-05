@@ -62,11 +62,17 @@ export const proposalSchema = proposalShape.superRefine((plan, ctx) => {
     const names = new Set<string>();
     day.exercises.forEach((exercise, ei) => {
       const name = normalizedExerciseName(exercise.name);
-      if (names.has(name) || exercise.minReps > exercise.maxReps)
+      if (names.has(name))
         ctx.addIssue({
           code: "custom",
-          message: "Doppelte Übung oder ungültiger Wiederholungsbereich",
-          path: ["days", di, "exercises", ei],
+          message: "Die Übung kommt an diesem Tag doppelt vor.",
+          path: ["days", di, "exercises", ei, "name"],
+        });
+      if (exercise.minReps > exercise.maxReps)
+        ctx.addIssue({
+          code: "custom",
+          message: "Minimale Wiederholungen dürfen nicht größer als maximale Wiederholungen sein.",
+          path: ["days", di, "exercises", ei, "maxReps"],
         });
       names.add(name);
     });

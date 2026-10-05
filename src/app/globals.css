@@ -605,3 +605,18 @@ main {
     padding-inline: 16px;
   }
 }
+
+.chatgpt-welcome {
+  margin: auto;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  color: var(--ink);
+}
+.chatgpt-welcome::backdrop {
+  background: #142d2680;
+}
+.proposal > small {
+  display: block;
+  margin-top: 12px;
+}

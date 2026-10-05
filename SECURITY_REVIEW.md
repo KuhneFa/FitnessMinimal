@@ -13,7 +13,7 @@ Lokale Code- und Testprüfung des MVP. Dies ist kein externer Penetrationstest u
 ## Schreibzugriffe und Eingaben
 
 - Alle Mutationen einschließlich Login prüfen Origin gegen die konfigurierte `APP_ORIGIN`. Fehlender oder fremder Origin wird abgelehnt.
-- JSON bei strukturierten Nutzdaten, maximal 32 KiB pro Body, Zod-Grenzen für IDs, Mengen, Gewicht, Wiederholungen, RIR und Notiz. Die Transkriptionsroute akzeptiert separat begrenzte Audiodaten (siehe KI-Assistent).
+- JSON bei strukturierten Nutzdaten, maximal 32 KiB pro Body, Zod-Grenzen für IDs, Mengen, Gewicht, Wiederholungen, RIR und Notiz. Die frühere Transkriptionsroute weist Anfragen inzwischen mit HTTP 410 ab (siehe Phase 10).
 - Parametrisierte SQL-Abfragen bzw. Drizzle. React rendert Eingaben als Text, ohne HTML-Injektion.
 - Satzversionen verhindern stilles Überschreiben durch alte Fenster; Mutation-IDs verhindern doppelte Anwendung verlorener Antworten.
 - Workout-Abschluss prüft alle Satzversionen transaktional. Abgeschlossene Workouts können über die API nicht verändert werden.
@@ -40,7 +40,7 @@ Das vollständige npm-Audit meldet aktuell **fünf hohe Befunde in einer einzige
 
 Die Produktionsabhängigkeiten wurden separat mit `npm audit --omit=dev` geprüft: **0 bekannte Sicherheitslücken**. `npm ci`, Typecheck, Lint, alle 31 Unit-/Integrationstests und Production Build bestehen unter Node 22.23.3 / npm 10.9.9.
 
-## KI-Assistent – 04.10.2026
+## KI-Assistent – 04.10.2026 (historischer Stand, ersetzt durch Phase 10)
 
 - Alle KI-Routen erfordern eine gültige Session; POST-Anfragen zusätzlich die passende Origin. Der API-Schlüssel bleibt auf dem Server. Die Konfigurationsroute liefert nur die Verfügbarkeit.
 - Aufnahme und Modellanfrage sind getrennte, ausdrückliche Aktionen. Transkription sendet Audio; Planerstellung sendet korrigierten Text, ausgefüllte optionale Angaben und maximal 200 Übungsnamen/Muskelgruppen. Keine Trainingshistorie wird angehängt.
@@ -50,6 +50,18 @@ Die Produktionsabhängigkeiten wurden separat mit `npm audit --omit=dev` geprüf
 - Alle vorgeschlagenen Übungen müssen ausdrücklich angenommen oder abgelehnt werden. Nur angenommene Übungen werden an die Import-Route gesendet und transaktional in der Bibliothek angelegt oder zugeordnet. Der Plan wird erst über „Plan speichern“ persistiert. Vorhandene Editorentwürfe erfordern eine Ersetzungsbestätigung; geänderte KI-Eingaben machen den Vorschlag ungültig.
 - Der Prompt untersagt die Ableitung von Trainingsgewichten aus Körpermaßen. Fehlende Gewichte werden sichtbar offengelassen und im Editor als zu prüfender 0-kg-Platzhalter übernommen. Modellvorschläge bleiben vom Nutzer zu prüfen.
 - Providerantworten sind in automatisierten Tests simuliert. Live-OpenAI- und echte iPhone-Mikrofonprüfungen stehen aus; dafür wurde kein echter Schlüssel verwendet. Keine zusätzlichen npm-Abhängigkeiten eingeführt.
+
+## Phase 10 – ChatGPT-Abo ohne API-Abrechnung – 05.10.2026
+
+- Produktionscode liest `OPENAI_API_KEY` nicht mehr. Kein API-Key-Fallback und kein Audio-Upload. Die frühere Transkriptionsroute antwortet nach Auth-/Origin-Prüfung mit 410. Tests setzen absichtlich einen Dummy-API-Key, um diese Trennung zu prüfen.
+- ChatGPT-Plananfragen brauchen OAuth-Berechtigung `chatgpt.tokens.use.direct` und ein ausgewähltes Kontomodell. Fehlende oder abgelaufene Freigaben und Limits werden als Fehler behandelt. Eine gültige Anmeldung allein reicht nicht.
+- Lokale Anmeldung ausschließlich bei Loopback-APP_ORIGIN; auf Railway deaktiviert. Callback-Listener nur an `127.0.0.1`, zufälliger Port, fester Pfad, Host-Prüfung, einmalige State-Bindung, fünf Minuten Lebensdauer und Abbruchmöglichkeit. Frische Nonce und PKCE S256 pro Versuch. Vor Speicherung: Signatur mit OpenAI-JWKS, RS256, Issuer, Audience, Nonce und Ablauf geprüft. Bei erneuter Anmeldung muss der Subject-Wert zur ausgewählten Registrierung passen.
+- OAuth-Tokens bleiben in der serverseitigen Datei neben SQLite, atomar geschrieben mit `0600`. Keine Tokens in Browser-Speicher, API-Konfigurationsantworten oder Logs. Git ignoriert den Dateinamen auch bei anderem Datenbankverzeichnis. Die Datei enthält Geheimnisse und gehört nicht in geteilte Backups. Refreshes werden im vorgesehenen einzelnen Node-Prozess serialisiert; Konten/Client-IDs bleiben getrennt. Beim Trennen wird die Remote-Revocation versucht; auch bei Fehler werden lokale Tokens entfernt und ein klarer Hinweis angezeigt.
+- Feste öffentliche OpenAI-Endpunkte; keine API-Weiterleitungen. OIDC-Discovery-Endpunkte werden auf die Auth-Origin begrenzt. Modellantworten: begrenzter SSE-Stream, Timeout, `store:false`, `stream:true`, keine automatischen Wiederholungen, Abschlussereignis erforderlich, erneute Schema-Validierung. Späte Abo-Limits und abgebrochene Streams werden nicht als Erfolg gewertet.
+- Browserdiktat speichert keine Audiodateien in FitTrack. Browseranbieter kann Audio für seine Spracherkennung verarbeiten; kein Versprechen lokaler Offline-Verarbeitung. Textübernahme erfolgt ausdrücklich. Beim Kopierweg entscheidet der Nutzer selbst, wann er Angaben in ChatGPT einfügt; dort gelten die ChatGPT-Dateneinstellungen.
+- Import parst ausschließlich begrenztes JSON; kein HTML und kein Ausführen von Antworten. Die vorhandene Prüfung jedes Übungsvorschlags und der transaktionale Import bleiben erhalten.
+- Keine automatische Guthaben-Aufladung durch FitTrack. Eventuelle kostenpflichtige ChatGPT-Guthaben-/Mehrnutzungseinstellungen werden vom Nutzer in ChatGPT verwaltet. Eine absolute Aussage über fremde Kontoeinstellungen wäre nicht möglich.
+- OAuth, Modellantworten und Web-Spracherkennung sind überwiegend mit simulierten Antworten geprüft. Echter Konto-Consent, echte Konto-Modellverfügbarkeit und Safari/iPhone-Diktat sind separat manuell zu prüfen. Das lokale Starten/Abbrechen des OAuth-Listeners und die Abweisung gefälschter Callbacks werden im E2E tatsächlich ausgeführt.
 
 ## Betrieb und verbleibende manuelle Prüfungen
 

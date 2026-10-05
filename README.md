@@ -18,35 +18,45 @@ Optional **vor dem ersten Plan** `npm run db:seed` ausführen. Der lokale Seed e
 
 Double Progression verwendet das letzte abgeschlossene Training derselben Übung, auch über verschiedene Trainingstage hinweg. Alle geplanten Sätze müssen bei identischem Gewicht mindestens die obere Wiederholungsgrenze und das Ziel-RIR erreichen. Dann wird der konfigurierte Gewichtsschritt addiert. Sonst bleibt das Gewicht des ersten abgeschlossenen Satzes erhalten; ohne Historie gilt das Startgewicht im Plan. Änderungen an Planwerten verändern keine laufenden oder historischen Workout-Snapshots.
 
-## Plan per Sprache und KI erstellen
+## Plan mit ChatGPT-Abo erstellen – ohne API-Abrechnung
 
-Unter **Pläne → Neuer Plan** (auch beim Bearbeiten) gibt es jetzt einen Planassistenten:
+FitTrack verwendet **keinen OpenAI-API-Key mehr**, auch wenn noch `OPENAI_API_KEY` in deiner `.env` steht. Es gibt keinen automatischen Wechsel zu einer kostenpflichtigen API. Die bisherige Audio-Upload-Route ist gesperrt, auch für alte geöffnete Tabs. Nach Aktualisierung den Entwicklungsserver neu starten und den Planeditor neu laden.
 
-1. Wünsche eintippen oder **Einsprechen → Aufnahme stoppen → Aufnahme transkribieren** wählen. Mikrofonfreigabe erteilen; auf dem iPhone die HTTPS-Adresse verwenden. Lokal ist `localhost` möglich. Aufnahme endet nach 90 Sekunden oder beim Wechsel in den Hintergrund.
-2. Erkannten Text prüfen und bei Bedarf korrigieren. Alter, Größe, Körpergewicht, Trainingsfokus, Erfahrung und Trainingstage sind freiwillig. Diese Angaben können auch direkt im gesprochenen Text stehen.
-3. **Vorschläge erstellen** sendet die Angaben und bis zu 200 vorhandene Übungsnamen/Muskelgruppen an OpenAI. Trainingshistorie wird nicht übertragen.
-4. Jede vorgeschlagene Übung **annehmen oder ablehnen**. Ohne Entscheidung für alle Übungen ist die Übernahme gesperrt. Abgelehnte Übungen werden nicht angelegt. Bereits vorhandene Übungen mit gleichem normalisiertem Namen werden wiederverwendet.
-5. **Auswahl in den Plan übernehmen** erstellt bei Bedarf die bestätigten Übungen in der Bibliothek und füllt den Editor. Ein vorhandener Entwurf wird nur nach Bestätigung ersetzt. **Plan speichern** speichert anschließend den Trainingsplan. Bestehende Workouts bleiben unverändert.
+### Direkt mit deinem ChatGPT-Abo verbinden (lokal)
 
-Es werden keine Trainingsgewichte aus Körpermaßen geschätzt. Ohne ausdrücklich genanntes Übungsgewicht bleibt es im Vorschlag offen und wird im Editor als **0 kg Platzhalter** übernommen. Vor dem ersten Training passend einstellen.
+1. FitTrack auf deinem Mac unter `http://localhost:3000` öffnen und anmelden. `APP_ORIGIN` muss zur lokalen Adresse passen.
+2. Im Planeditor **Continue with ChatGPT** wählen. Den anschließend angezeigten Anmeldelink auf **demselben Mac** öffnen, auf dem der FitTrack-Server läuft.
+3. In ChatGPT anmelden und die Abo-Nutzung für **FitTrack** freigeben. Die Zugangsdaten werden ausschließlich bei OpenAI eingegeben. Berechtigung und Verfügbarkeit hängen von deinem Konto und der OpenAI-Vorschau ab.
+4. Zu FitTrack zurückkehren, den einmaligen Hinweis bestätigen und ein Modell aus der Liste deines Kontos wählen. Die Auswahl wird in der Verbindung gespeichert.
+5. Trainingswünsche diktieren oder eintippen, optionale Profilfelder ergänzen und **Vorschläge erstellen** wählen.
 
-### OpenAI einrichten
+Unter **ChatGPT-Nutzung verwalten** die Freigabe, Abo-Limits und eventuelle Nutzung zusätzlich gekauften Guthabens prüfen. FitTrack kauft kein Guthaben und nutzt keine API-Abrechnung. Die Abo-Nutzung wird mit anderen verbundenen Apps geteilt. Einstellungen für bezahlte Mehrnutzung oder Nachladen werden in ChatGPT verwaltet und können von FitTrack nicht zugesichert oder verändert werden.
 
-Serverseitig in `.env` bzw. den Railway-Service-Variablen ergänzen und den Server neu starten:
+Die Anbindung verwendet den offiziellen [Sign-in-with-ChatGPT-Ablauf](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), nicht vorhandene Codex-Zugangsdaten oder private ChatGPT-Endpunkte. Anmeldung mit State, Nonce, PKCE, geprüftem ID-Token und getrennten Kontoregistrierungen. OAuth-Zugangsdaten liegen atomar gespeichert mit Dateirechten `0600` in `chatgpt-connection.json` neben der SQLite-Datenbank und sind von Git ausgeschlossen. Host-ID und Kontozuordnung bleiben nach Trennen erhalten; lokale Tokens werden entfernt. Bei nicht bestätigbarer serverseitiger Trennung zusätzlich FitTrack in den ChatGPT-Einstellungen entfernen. Nur eine FitTrack-Serverinstanz mit diesem Datenverzeichnis betreiben.
 
-```dotenv
-OPENAI_API_KEY=DEIN_OPENAI_API_SCHLUESSEL
-OPENAI_PLAN_MODEL=gpt-4.1-mini
-OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
-```
+**Lokale Einschränkung:** Die direkte Verbindung ist absichtlich auf eine lokale HTTP-Origin beschränkt; auf Railway bzw. einer öffentlichen Domain ist sie deaktiviert. Die [offizielle Dokumentation](https://developers.openai.com/siwc/token-sharing-open-source) unterscheidet lokale/Open-Source-Projekte und gehostete Angebote. Für die gehostete Version funktioniert der folgende Import ohne eigene Modell-API. Ein iPhone kann die Loopback-Anmeldung des Macs nicht selbst abschließen.
 
-Der Schlüssel wird niemals an den Browser ausgeliefert. Ohne Schlüssel bleibt der manuelle Editor nutzbar; KI und Aufnahme sind deaktiviert. Der API-Zugang benötigt ein verfügbares Kontingent. Beide Modelle sind konfigurierbar; das Planmodell muss Responses API und Structured Outputs unterstützen.
+### ChatGPT über Kopieren und Import nutzen (auch auf dem iPhone)
 
-FitTrack verarbeitet Audio nur im Arbeitsspeicher (max. 5 MiB / 90 Sekunden Aufnahme), ohne Dateien, IndexedDB oder Local Storage. Nach erfolgreicher Transkription, Verwerfen oder Verlassen der Seite wird die Browserkopie freigegeben. Bei einem Übertragungsfehler bleibt sie nur bis zum erneuten Senden oder Verwerfen im aktuellen Tab. Profildaten, Rohtext und abgelehnte Entwürfe werden nicht in SQLite gespeichert. Nur ausdrücklich übernommene Übungen und gespeicherte Pläne bleiben dauerhaft erhalten.
+1. Im Planeditor Wünsche und freiwillige Angaben erfassen.
+2. **Über ChatGPT kopieren & importieren → ChatGPT-Anfrage vorbereiten** wählen. Dabei wird noch nichts an einen Modellanbieter gesendet.
+3. **Anfrage kopieren**, ChatGPT öffnen und dort mit deinem vorhandenen Abo einfügen. Die Anfrage enthält die erforderliche Antwortstruktur und bis zu 200 vorhandene Übungsnamen/Muskelgruppen.
+4. Die vollständige JSON-Antwort zurück in **Antwort aus ChatGPT** kopieren und **Vorschlag prüfen** wählen. JSON mit einem Markdown-Codeblock wird ebenfalls akzeptiert; ungültige oder unvollständige Inhalte werden abgelehnt.
+5. Jede Übung einzeln **annehmen oder ablehnen**, anschließend die Auswahl übernehmen und den Plan speichern. Beim Kopieren in ChatGPT gelten dessen Chatverlauf- und Dateneinstellungen.
 
-Modellantworten werden mit `store:false` angefordert. Das ist keine Zusicherung vollständiger Datenlöschung beim Anbieter; für dessen Verarbeitung und mögliche Aufbewahrung gelten die [OpenAI Data Controls](https://developers.openai.com/api/docs/guides/your-data). Implementierung anhand der offiziellen Dokumentation für [Transkription](https://developers.openai.com/api/docs/guides/speech-to-text) und [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+### Spracheingabe
 
-Kostenbegrenzung pro Single-User-Installation: maximal 5 Plananfragen / 15 Minuten und 30 / 24 Stunden; maximal 20 Transkriptionen / 15 Minuten und 60 / 24 Stunden. Kein automatischer Retry kostenpflichtiger Anfragen. Für einen harten Ausgabenrahmen zusätzlich ein Limit beim Anbieter einrichten.
+**Einsprechen → Diktieren stoppen → Text übernehmen** nutzt die eingebaute Spracherkennung des Browsers. Der Text kann vor dem Übernehmen korrigiert werden. FitTrack lädt keine Audiodatei hoch und nutzt keine Transkriptions-API. Je nach Browser kann dessen Spracherkennung Audio an den Browseranbieter senden; sie ist nicht als rein offline zugesichert. Diktieren endet nach spätestens 90 Sekunden oder bei Hintergrundwechsel.
+
+Falls die Web-Spracherkennung fehlt oder der Mikrofonzugriff verweigert wird, in das Textfeld tippen und das Mikrofon der iPhone-/Mac-Tastatur verwenden oder den Text eingeben. Das funktioniert unabhängig von der ChatGPT-Verbindung. Die direkte ChatGPT-Abo-Anbindung unterstützt laut [Preview-Einschränkungen](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations) keine Transkriptions-API.
+
+### Vorschläge prüfen und speichern
+
+Jede vorgeschlagene Übung braucht eine Entscheidung. Nur angenommene Übungen werden beim Übernehmen in der Bibliothek angelegt oder anhand ihres normalisierten Namens wiederverwendet. Der Plan wird anschließend mit **Plan speichern** gespeichert. Vorhandene Editorentwürfe brauchen eine Ersetzungsbestätigung. Geänderte Wünsche, Profildaten oder ChatGPT-Konten/Modelle sperren einen veralteten Vorschlag.
+
+Ohne genanntes Übungsgewicht bleibt das Startgewicht offen und wird im Editor als **0 kg Platzhalter** übernommen. Vor dem ersten Training passend einstellen. Es werden keine Trainingsgewichte aus Körpermaßen geschätzt.
+
+Rohtext, Profil und abgelehnte Vorschläge werden in FitTrack nicht dauerhaft gespeichert. Direkte Modellanfragen verwenden `store:false` und werden erst nach bestätigtem Abschluss des Datenstroms akzeptiert; Anbieter-Datenregeln gelten zusätzlich. Pro Instanz maximal fünf direkte Vorschlagsanfragen in 15 Minuten und 30 in 24 Stunden; keine automatischen Modell-Retries. Bei Abo-Limit, fehlender Freigabe oder Fehler bleibt die Eingabe erhalten. Der lokale Kopier-/Importweg benötigt keine Modellanfrage durch FitTrack.
 
 ## Prüfungen
 

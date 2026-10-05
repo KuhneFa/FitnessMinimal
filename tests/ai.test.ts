@@ -5,17 +5,28 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assistantInput, proposal } from "./fixtures/ai";
-import {
-  assistantInputSchema,
-  proposalSchema,
-  MAX_AUDIO_BYTES,
-} from "../src/lib/ai-contract";
-import {
-  generateProposal,
-  readAudio,
-  transcribeAudio,
-  requireOpenAiKey,
-} from "../src/lib/openai";
+import { assistantInputSchema, proposalSchema } from "../src/lib/ai-contract";
+import { generateWithChatGpt, readProposalStream } from "../src/lib/openai";
+import { manualPlanPrompt } from "../src/lib/plan-prompt";
+const account = {
+  id: "test",
+  clientId: "client",
+  subject: "user",
+  email: "test@example.com",
+  accessToken: "subscription-token",
+  refreshToken: "refresh",
+  scopes: ["chatgpt.tokens.use.direct"],
+  model: "account-model",
+};
+const generateProposal = (
+  input: Parameters<typeof generateWithChatGpt>[0],
+  library: Parameters<typeof generateWithChatGpt>[1],
+  fetcher: typeof fetch,
+) => generateWithChatGpt(input, library, account, fetcher);
+const sse = (value: unknown) =>
+  new Response(
+    `data: ${JSON.stringify({ type: "response.completed", response: value })}\n\n`,
+  );
 import { consumeAiBudget } from "../src/lib/ai-budget";
 import { importAcceptedProposal } from "../src/lib/ai-import";
 import { openDatabase, getDatabase } from "../src/db";
@@ -33,7 +44,7 @@ const envelope = (value: unknown) => ({
 const mockResponse =
   (value: unknown, status = 200): typeof fetch =>
   async () =>
-    Response.json(value, { status });
+    status === 200 ? sse(value) : Response.json(value, { status });
 
 test("structured proposal sends only explicit profile and library names, never stores response", async () => {
   const fetcher: typeof fetch = async (url, init) => {
@@ -43,13 +54,19 @@ test("structured proposal sends only explicit profile and library names, never s
     assert.equal(body.text.format.strict, true);
     assert.equal(body.text.format.type, "json_schema");
     assert.equal(body.text.format.schema.additionalProperties, false);
-    assert.deepEqual(JSON.parse(body.input).request, assistantInput);
+    assert.deepEqual(JSON.parse(body.input[0].content).request, assistantInput);
+    assert.equal(body.stream, true);
+    assert.equal(body.max_output_tokens, undefined);
+    assert.equal(
+      (init!.headers as Record<string, string>).Authorization,
+      "Bearer subscription-token",
+    );
     assert.match(body.instructions, /Körpergewicht/);
     assert.match(body.instructions, /weight=null/);
-    assert.deepEqual(JSON.parse(body.input).availableExercises, [
+    assert.deepEqual(JSON.parse(body.input[0].content).availableExercises, [
       { name: "Bankdrücken", muscle: "Brust" },
     ]);
-    return Response.json(envelope(proposal));
+    return sse(envelope(proposal));
   };
   assert.deepEqual(
     await generateProposal(
@@ -60,14 +77,21 @@ test("structured proposal sends only explicit profile and library names, never s
     proposal,
   );
 });
-test("missing configuration prevents external calls", () => {
-  const key = process.env.OPENAI_API_KEY;
-  delete process.env.OPENAI_API_KEY;
-  try {
-    assert.throws(() => requireOpenAiKey(), /noch nicht eingerichtet/);
-  } finally {
-    process.env.OPENAI_API_KEY = key;
-  }
+test("API key cannot replace missing subscription grant", async () => {
+  let calls = 0;
+  await assert.rejects(
+    generateWithChatGpt(
+      assistantInput,
+      [],
+      { ...account, scopes: [] },
+      async () => {
+        calls++;
+        return sse(envelope(proposal));
+      },
+    ),
+    /verbinden/,
+  );
+  assert.equal(calls, 0);
 });
 test("invalid or duplicated model exercises are rejected before any import", async () => {
   const invalid = structuredClone(proposal);
@@ -178,49 +202,47 @@ test("optional profile values may be absent but implausible values and long prom
     false,
   );
 });
-test("audio uploads are bounded even without Content-Length and reject unsupported formats", async () => {
-  const request = (type: string, body: Uint8Array) =>
-    new Request("http://test", {
-      method: "POST",
-      headers: { "Content-Type": type },
-      body: new Blob([new Uint8Array(body)]),
-    });
-  await assert.rejects(
-    readAudio(request("application/json", new Uint8Array(20))),
-    /Audioformat/,
-  );
-  await assert.rejects(
-    readAudio(request("audio/mp4", new Uint8Array(0))),
-    /leer/,
-  );
-  await assert.rejects(
-    readAudio(request("audio/webm", new Uint8Array(MAX_AUDIO_BYTES + 1))),
-    /zu groß/,
-  );
-  const audio = await readAudio(
-    request("audio/mp4;codecs=mp4a.40.2", new Uint8Array(30)),
-  );
-  assert.equal(audio.extension, "m4a");
-  assert.equal(audio.bytes.length, 30);
-});
-test("transcription uploads a temporary file, returns bounded text and handles empty speech", async () => {
-  const audio = {
-    bytes: Buffer.alloc(30),
-    mime: "audio/webm",
-    extension: "webm",
-  };
-  const text = await transcribeAudio(audio, async (url, init) => {
-    assert.equal(url, "https://api.openai.com/v1/audio/transcriptions");
-    const form = init!.body as FormData;
-    assert.equal(form.get("language"), "de");
-    assert.equal((form.get("file") as File).name, "aufnahme.webm");
-    return Response.json({ text: "Bankdrücken und Klimmzüge" });
+test("SSE requires terminal completion, supports chunk boundaries and stops on late limits", async () => {
+  const data = `data: ${JSON.stringify({ type: "response.completed", response: envelope(proposal) })}\r\n\r\n`;
+  const bytes = new TextEncoder().encode(data);
+  const stream = new ReadableStream({
+    start(controller) {
+      for (let i = 0; i < bytes.length; i += 7)
+        controller.enqueue(bytes.slice(i, i + 7));
+      controller.close();
+    },
   });
-  assert.equal(text, "Bankdrücken und Klimmzüge");
+  assert.deepEqual(await readProposalStream(new Response(stream)), proposal);
   await assert.rejects(
-    transcribeAudio(audio, mockResponse({ text: "  " })),
-    /Kein verwertbarer Text/,
+    readProposalStream(
+      new Response(
+        'data: {"type":"response.output_text.delta","delta":"partial"}\n\n',
+      ),
+    ),
+    /unterbrochen/,
   );
+  await assert.rejects(
+    readProposalStream(
+      new Response(
+        'data: {"type":"response.failed","response":{"error":{"code":"subscription_sharing_usage_limit_exceeded"}}}\n\n',
+      ),
+    ),
+    /Nutzungslimit/,
+  );
+  await assert.rejects(
+    readProposalStream(
+      new Response('data: {"type":"response.incomplete"}\n\n'),
+    ),
+    /unvollständig/,
+  );
+});
+test("manual ChatGPT prompt includes schema, voluntary context and library without external call", () => {
+  const prompt = manualPlanPrompt(assistantInput, [
+    { name: "Bankdrücken", muscle: "Brust" },
+  ]);
+  assert.match(prompt, /JSON-Objekt/);
+  assert.match(prompt, /Bankdrücken/);
+  assert.match(prompt, /additionalProperties/);
 });
 test("AI budgets share sessions, survive requests and enforce both short and daily limits", () => {
   const { sqlite } = openDatabase(":memory:");
