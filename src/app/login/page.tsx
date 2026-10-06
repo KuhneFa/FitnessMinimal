@@ -1,8 +1,9 @@
 import { LoginForm } from "@/components/auth-form";
+import { Brand } from "@/components/brand";
 export default function Login() {
   return (
     <main className="shell" style={{ maxWidth: 480, paddingTop: "12vh" }}>
-      <span className="brand">fittrack.</span>
+      <Brand />
       <p className="eyebrow" style={{ marginTop: 48 }}>
         Dein Raum fürs Training
       </p>

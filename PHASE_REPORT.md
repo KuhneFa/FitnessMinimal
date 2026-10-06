@@ -117,3 +117,38 @@ Abschlussprüfung:
 - `git diff --check`: bestanden. Keine zusätzlichen npm-Abhängigkeiten.
 
 Nicht als live bestätigt: persönliche ChatGPT-Anmeldung/Einwilligung, Konto-/Modellfreigabe und tatsächliche Modellantwort, echte Safari-/iPhone-Web-Spracherkennung, Railway/Docker-Deployment. Alle Modellantworten und die Browser-Spracherkennung der automatisierten Tests sind simuliert. Keine kostenpflichtige API-Anfrage und keine Guthaben-Aufladung ausgeführt. Der Nutzer schließt die Anmeldung selbst über „Continue with ChatGPT“ ab. Zusätzliche Guthaben-/Mehrnutzungseinstellungen des ChatGPT-Kontos liegen außerhalb der App und werden in der Oberfläche verlinkt.
+
+## Phase 11 – Vollständiges Diktat, kompakter Prompt und Fitness Minimal – 06.10.2026
+
+Behoben: Beim Stoppen wurde zuvor nur endgültig bestätigter Diktattext übernommen, obwohl vorläufige Wörter bereits sichtbar waren. Jetzt bleibt der sichtbare Text erhalten; späte Korrekturen ersetzen die zugehörigen Segmente. Ein fehlendes Ende-Ereignis blockiert den Editor höchstens zwei Sekunden. Lange Texte werden nicht still abgeschnitten, sondern mit Hinweis zur bestehenden 6.000-Zeichen-Grenze erhalten.
+
+Der Masterprompt wurde auf kurze Regeln gekürzt. Direkte Anfragen senden das strukturierte Schema separat; der Kopierweg erhält eine kompakte Feldbeschreibung ohne ausführliches Beispiel. Beide Wege verwenden dieselbe Antwortprüfung mit begrenzter Formatnormalisierung und konkreten Fehlern je Tag/Übung/Feld. Keine erratenen Gewichte, keine abgeschnittenen Übungen, keine automatischen Modell-Retries.
+
+Die bisherige pauschale Limitmeldung bei HTTP 429 wurde durch Auswertung bekannter OpenAI-Fehlercodes ersetzt. App-Nutzungslimit, vorübergehend nicht prüfbare Abo-Verfügbarkeit, fehlende Berechtigung und Anfragelimit werden unterschieden. Bei unbekanntem Code wird kein ausgeschöpftes Plus-Abo behauptet. Die tatsächliche Ursache der Nutzeranfrage ist ohne deren Anbieterantwort weiterhin unbestätigt.
+
+Marke: „Fitness“ und „Minimal“ stehen im Login und Seitenkopf untereinander. Browser-/PWA-Titel, Verbindungstexte und neue OAuth-Registrierungen verwenden den neuen Namen; Farben und bestehende Datenpfade bleiben erhalten.
+
+Prüfungen: Typecheck, ESLint, **53 Unit-/Integrationstests**, Production Build und **8 Chromium-End-to-End-Tests** bestanden. Regressionen prüfen vorläufige Wörter, verspätete Korrekturen, fehlendes Ende-Ereignis, vollständigen Text bis zur Modellanfrage, Zahlenformate, ungültige Werte sowie HTTP-/SSE-Anbieterfehler. axe ohne Befunde in den geprüften Regeln, mobile Breiten 320/375/390/430 ohne Überlauf; Screenshot visuell geprüft. Keine neuen Abhängigkeiten und keine echten Modellanfragen oder API-Ausgaben.
+
+Offen: echter Mac-/Safari-/iPhone-Sprachdienst sowie tatsächliche ChatGPT-Kontofreigabe und Modellantwort. Browser-Erkennungsqualität/-geschwindigkeit wurde nicht durch einen anderen Sprachdienst ersetzt. Rohtext bleibt im geöffneten Editor, ohne neue dauerhafte Browserablage.
+
+## Phase 12 – Fitmin, Originalantworten und verlässlicheres Planformat – 06.10.2026
+
+Nutzerwunsch: kürzerer Markenname, tatsächliche ChatGPT-Antwort zur Kontrolle, Behebung wiederkehrender JSON-Fehler und bessere Trainingsvorgaben. Gewählter Name: **Fitmin**, Unterzeile **Fitness. Minimal.**; Farben bleiben erhalten.
+
+Implementiert:
+
+- Antworttext wird aus Stream-Deltas, fertigen Textteilen und fertigen Nachrichten gesammelt. Abschlussinhalt hat Vorrang, doppelte Übernahme wird verhindert. Auch bei leerem Abschluss-Output kann der vollständig empfangene Text gelesen werden; ohne expliziten Abschluss kein Planimport.
+- Eine einzelne vollständige JSON-Struktur wird auch bei umgebender Einleitung/Codeblock erkannt. Unvollständige, mehrdeutige oder unzulässige Antworten werden nicht erfunden oder still korrigiert.
+- „Originalantwort von ChatGPT“ zeigt und kopiert öffentlichen Antworttext bei Erfolg und Fehler. Fehler öffnen die Ansicht automatisch. Kein HTML-Ausführen, keine Reasoning-/Tool-/Credential-Ausgabe, keine dauerhafte Ablage persönlicher Antworten, begrenzte und ausdrücklich markierte Vorschau bei Überlänge.
+- Gemeinsamer Masterprompt mit konkreten Standardvorgaben, eindeutigen Einheiten und einem einzelnen kompakten Strukturbeispiel. KI-Grenzen: 1–6 Arbeitssätze, 1–30 Wiederholungen pro Satz, RIR 0–5, 30–300 Sekunden Pause. Die früheren 900 bezeichneten das technische Maximum für Pausensekunden, nicht Wiederholungen. Keine rückwirkende Änderung gespeicherter manueller Pläne.
+
+Prüfungen:
+
+- Typecheck, ESLint, **59 Unit-/Integrationstests** und Production Build bestanden.
+- **9 Chromium-End-to-End-Tests bestanden**: neue Originalantwortansicht bei Fehler/Erfolg, Kopieren, Ausblenden, Antworttext ohne HTML-Ausführung, keine automatischen Wiederholungen; bestehende Diktat-/Import-/Workoutabläufe weiterhin grün. Bei der neuen UI-Prüfung wurden ein zu breiter Alert-Selektor und die eindeutige Zuordnung von Label/Antwortfeld korrigiert.
+- axe ohne Befunde in den geprüften Regeln. Geprüfte mobile Breiten ohne horizontalen Überlauf; Originalantwort-Screenshot visuell geprüft.
+- **Eine echte neutrale Anfrage** über die vorhandene gültige Abo-Verbindung mit dem ausgewählten Modell `gpt-5.6-luna` erfolgreich: Bankdrücken und Rudern am Kabel, jeweils 3 × 8–12, RIR 3, 120 Sekunden Pause, Gewicht null. Kein API-Key, keine automatischen Wiederholungen, kein Tokenrefresh, keine privaten Profilangaben. Unveränderte öffentliche Testantwort: `docs/chatgpt-testantwort.json`.
+- `git diff --check` bestanden; keine neuen Abhängigkeiten.
+
+Die ursprünglich fehlgeschlagene Nutzerantwort war nicht gespeichert und ist rückwirkend nicht rekonstruierbar. Die konkrete damalige Ursache ist daher nicht bewiesen. Der neue Ablauf ist mit einer echten Modellantwort und simulierten Format-/Streamfehlern geprüft, garantiert aber nicht, dass jede künftige Modellantwort inhaltlich oder strukturell gültig ist; ungültige Antworten bleiben überprüfbar und werden nicht als Trainingsplan übernommen. Echte Safari-/iPhone-Geräteprüfung bleibt offen.

@@ -445,9 +445,27 @@ button:disabled {
   margin-bottom: 36px;
 }
 .brand {
-  font-size: 24px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.brand-name {
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -1px;
+  line-height: 1;
+}
+.brand-tagline {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.35px;
+  line-height: 1.2;
+}
+.model-reply textarea {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .eyebrow {
   font-size: 12px;

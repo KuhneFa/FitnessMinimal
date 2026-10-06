@@ -179,8 +179,8 @@ export function authorizationUrl(
     code_challenge_method: "S256",
     code_challenge: createHash("sha256").update(verifier).digest("base64url"),
   };
-  if (!account) params.agent_name_hint = "FitTrack";
-  // Do not expose stored ID tokens to the FitTrack browser; the account selector is intentional.
+  if (!account) params.agent_name_hint = "Fitmin";
+  // Do not expose stored ID tokens to the Fitmin browser; the account selector is intentional.
   for (const [key, value] of Object.entries(params))
     url.searchParams.set(key, value);
   return url.href;
@@ -359,7 +359,7 @@ export async function startChatGptLogin(accountId?: string) {
         runtime.fittrackOAuthMessage =
           "ChatGPT verbunden. Du verwendest dein ChatGPT-Abo. Prüfe dessen Nutzungslimits und Guthaben-Einstellungen in ChatGPT.";
         res.end(
-          "ChatGPT verbunden. Du kannst dieses Fenster schließen und zu FitTrack zurückkehren.",
+          "ChatGPT verbunden. Du kannst dieses Fenster schließen und zu Fitmin zurückkehren.",
         );
       } catch (e) {
         runtime.fittrackOAuthMessage =
@@ -507,7 +507,7 @@ export async function disconnectChatGpt(accountId: string) {
     return {
       message: revoked
         ? "ChatGPT-Verbindung getrennt."
-        : "Lokal getrennt. Die Trennung bei ChatGPT konnte nicht bestätigt werden. Entferne FitTrack auch in den ChatGPT-Einstellungen.",
+        : "Lokal getrennt. Die Trennung bei ChatGPT konnte nicht bestätigt werden. Entferne Fitmin auch in den ChatGPT-Einstellungen.",
     };
   });
 }

@@ -3,13 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import {
   assistantInputSchema,
   proposalSchema,
+  modelReplySchema,
+  type ModelReply,
   type PlanProposal,
   type AssistantInput,
 } from "@/lib/ai-contract";
 import type { PlanInput } from "@/lib/plans";
 import { VoiceInput } from "./voice-input";
 import { ChatGptConnection } from "./chatgpt-connection";
-import { parsePlanResponse, PlanResponseError } from "@/lib/plan-response";
+import {
+  modelReply,
+  parsePlanResponse,
+  PlanResponseError,
+} from "@/lib/plan-response";
+import { ModelReplyView } from "./model-reply";
 type Choice = "accepted" | "rejected";
 type Imported = {
   plan: PlanInput;
@@ -49,6 +56,7 @@ export function PlanAssistant({
   const [wishes, setWishes] = useState("");
   const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
   const [proposal, setProposal] = useState<PlanProposal | null>(null);
+  const [reply, setReply] = useState<ModelReply | null>(null);
   const [choices, setChoices] = useState<Record<string, Choice>>({});
   const [busy, setBusy] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
@@ -113,6 +121,9 @@ export function PlanAssistant({
       );
       return;
     }
+    setProposal(null);
+    setChoices({});
+    setReply(modelReply(importText, "imported"));
     try {
       const parsed = parsePlanResponse(importText);
       setProposal(parsed);
@@ -142,6 +153,9 @@ export function PlanAssistant({
       return;
     }
     setBusy(true);
+    setProposal(null);
+    setChoices({});
+    setReply(null);
     const controller = new AbortController();
     request.current = controller;
     const timeout = setTimeout(() => controller.abort(), 100000);
@@ -153,11 +167,13 @@ export function PlanAssistant({
         signal: controller.signal,
       });
       const data = await res.json();
+      const receivedReply = modelReplySchema.safeParse(data.reply);
+      if (receivedReply.success) setReply(receivedReply.data);
       if (!res.ok)
         throw new Error(
           data.error || "Vorschläge konnten nicht erstellt werden.",
         );
-      const checked = proposalSchema.safeParse(data);
+      const checked = proposalSchema.safeParse(data.proposal);
       if (!checked.success)
         throw new Error(
           "Der Entwurf konnte nicht gelesen werden. Bitte erneut versuchen.",
@@ -223,6 +239,7 @@ export function PlanAssistant({
       if (!res.ok) throw new Error(data.error || "Übernehmen fehlgeschlagen.");
       onApply(data);
       setProposal(null);
+      setReply(null);
       setChoices({});
       setWishes("");
       setProfile(emptyProfile);
@@ -295,9 +312,9 @@ export function PlanAssistant({
           </small>
           {wishes.length > 6000 && (
             <p className="error" role="status">
-              {wishes.length.toLocaleString("de-DE")} Zeichen: Dein vollständiger
-              Text ist erhalten. Bitte kürze ihn auf höchstens 6.000 Zeichen,
-              bevor du einen Vorschlag anforderst.
+              {wishes.length.toLocaleString("de-DE")} Zeichen: Dein
+              vollständiger Text ist erhalten. Bitte kürze ihn auf höchstens
+              6.000 Zeichen, bevor du einen Vorschlag anforderst.
             </p>
           )}
           <details className="profile-details">
@@ -396,7 +413,7 @@ export function PlanAssistant({
         </fieldset>
         <p className="assistant-privacy">
           Mit „Vorschläge erstellen“ sendest du den Text, ausgefüllte Angaben
-          und die Namen deiner vorhandenen Übungen an OpenAI. FitTrack speichert
+          und die Namen deiner vorhandenen Übungen an OpenAI. Fitmin speichert
           diese Angaben nicht dauerhaft. Die Anfrage nutzt dein verbundenes
           ChatGPT-Abo. Es gibt keinen Wechsel zu einer kostenpflichtigen API.
         </p>
@@ -515,6 +532,13 @@ export function PlanAssistant({
         <p className="success" role="status">
           {notice}
         </p>
+      )}
+      {reply && (
+        <ModelReplyView
+          reply={reply}
+          failed={!!error}
+          onDismiss={() => setReply(null)}
+        />
       )}
       {proposal && (
         <div className="proposal">

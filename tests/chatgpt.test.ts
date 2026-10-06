@@ -56,7 +56,7 @@ test("sign-in uses PKCE, nonce, loopback callback and persistent client for reau
   assert.equal(url.origin, "https://auth.openai.com");
   assert.equal(url.searchParams.get("client_id"), "dynamic_agent_client");
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
-  assert.equal(url.searchParams.get("agent_name_hint"), "FitTrack");
+  assert.equal(url.searchParams.get("agent_name_hint"), "Fitmin");
   assert.equal(url.searchParams.get("nonce"), "nonce");
   assert.notEqual(url.searchParams.get("code_challenge"), "verifier");
   const returning = new URL(

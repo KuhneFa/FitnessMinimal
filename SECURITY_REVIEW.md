@@ -70,3 +70,18 @@ Die Produktionsabhängigkeiten wurden separat mit `npm audit --omit=dev` geprüf
 - Bei Passwortwechsel bestehende Sessions explizit widerrufen (siehe README).
 - Echtes iPhone/Safari/PWA prüfen. WebKit-Automation war auf dem verfügbaren Host durch `Unknown setting: PushAPIEnabled` blockiert.
 - Docker-Daemon auf diesem Host nicht verfügbar; Dockerfile wurde vorbereitet, der Container-Build hier nicht ausgeführt.
+
+## Phase 11 – Diktat und Fehlerdiagnose – 06.10.2026
+
+- Diktat bleibt einschließlich vorläufiger Wörter im Arbeitsspeicher. Stoppen, Verwerfen, Hintergrundwechsel und Unmount lösen die Erkennung; ein Abschluss-Watchdog verhindert dauerhaft blockierte Eingaben. Keine neue Audio- oder Profildatenpersistenz.
+- Direkte und manuelle Modellantworten werden auf 64 KiB begrenzt und gleich validiert. Nur vollständige JSON-Codeblöcke und reine numerische Zeichenketten werden normalisiert. Keine Standardgewichte, Grenzwertkorrekturen oder still entfernten Übungen.
+- Fehlerdiagnose zeigt bekannte Fehlercodes und lokale Feldbeschreibungen, keine freien Anbieter-Fehlertexte, Credentials oder Profilwerte. Unbekanntes HTTP 429 bleibt diagnostisch offen. Keine automatischen Wiederholungen, Freigaben oder API-Key-Fallbacks.
+- Die bestehende Kostenbarriere ist unverändert. Die neuen Tests verwenden ausschließlich simulierte Erkennung/Modellantworten und eine isolierte Testdatenbank.
+
+## Phase 12 – Prüfansicht für Modellantworten – 06.10.2026
+
+- Auf ausdrücklichen Nutzerwunsch liefert die geschützte Planroute jetzt neben validierten Vorschlägen den öffentlichen Modellantworttext zurück, bei Formatfehlern mit Fehlerstatus. Erfolgs- und Antwortfehler-Payloads sind `no-store`; dieselbe Session-/Origin-Prüfung bleibt aktiv.
+- Nur Text-/Refusal-Inhalte öffentlicher Nachrichten werden gesammelt. Reasoning, Toolargumente, Credentials und freie Anbieterfehler werden nicht in die Prüfansicht übernommen. React stellt die Antwort als Textarea-Wert dar, ohne HTML-Ausführung.
+- Die Originalantwort wird nicht in Datenbank, Local Storage oder Logs gespeichert. Die Vorschau ist auf 64 KiB begrenzt; Überlänge wird ausdrücklich markiert und blockiert den Import. Vollständiger Stream höchstens 1 MiB, explizites Abschlussereignis erforderlich. Auch formal gültiges JSON aus einem abgebrochenen Stream wird nicht als Plan akzeptiert.
+- Ein einzelnes vollständiges JSON-Objekt in umgebendem Text darf extrahiert werden. Keine Auswahl zwischen mehreren Kandidaten, keine Vervollständigung kaputter JSON-Strukturen, keine Korrektur unplausibler Wiederholungen/Gewichte. Engere Grenzen gelten für KI-Vorschläge, nicht rückwirkend für vorhandene manuelle Pläne.
+- Eine einzelne neutrale Live-Testanfrage erfolgte über den vorhandenen gültigen ChatGPT-Abo-Zugang, ohne API-Key, Tokenrefresh, Trainingshistorie oder persönliche Profilangaben. Die öffentliche Testantwort ist auf ausdrücklichen Prüfwunsch in `docs/chatgpt-testantwort.json` abgelegt; keine Tokens oder privaten Nutzerantworten. Automatisierte Tests bleiben vollständig simuliert und verwenden eine isolierte Datenbank.

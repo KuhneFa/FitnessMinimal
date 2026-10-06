@@ -1,4 +1,4 @@
-# FitTrack
+# Fitmin
 
 Mobile Trainings-App für eine Person. Next.js, TypeScript, Tailwind, SQLite und Drizzle. Persönliche Daten werden auf dem Server gespeichert. Kein Service Worker, kein API-Cache, keine lokale Historien-Datenbank.
 
@@ -20,19 +20,21 @@ Double Progression verwendet das letzte abgeschlossene Training derselben Übung
 
 ## Plan mit ChatGPT-Abo erstellen – ohne API-Abrechnung
 
-FitTrack verwendet **keinen OpenAI-API-Key mehr**, auch wenn noch `OPENAI_API_KEY` in deiner `.env` steht. Es gibt keinen automatischen Wechsel zu einer kostenpflichtigen API. Die bisherige Audio-Upload-Route ist gesperrt, auch für alte geöffnete Tabs. Nach Aktualisierung den Entwicklungsserver neu starten und den Planeditor neu laden.
+Fitmin verwendet **keinen OpenAI-API-Key mehr**, auch wenn noch `OPENAI_API_KEY` in deiner `.env` steht. Es gibt keinen automatischen Wechsel zu einer kostenpflichtigen API. Die bisherige Audio-Upload-Route ist gesperrt, auch für alte geöffnete Tabs. Nach Aktualisierung den Entwicklungsserver neu starten und den Planeditor neu laden.
 
 ### Direkt mit deinem ChatGPT-Abo verbinden (lokal)
 
-1. FitTrack auf deinem Mac unter `http://localhost:3000` öffnen und anmelden. `APP_ORIGIN` muss zur lokalen Adresse passen.
-2. Im Planeditor **Continue with ChatGPT** wählen. Den anschließend angezeigten Anmeldelink auf **demselben Mac** öffnen, auf dem der FitTrack-Server läuft.
-3. In ChatGPT anmelden und die Abo-Nutzung für **FitTrack** freigeben. Die Zugangsdaten werden ausschließlich bei OpenAI eingegeben. Berechtigung und Verfügbarkeit hängen von deinem Konto und der OpenAI-Vorschau ab.
-4. Zu FitTrack zurückkehren, den einmaligen Hinweis bestätigen und ein Modell aus der Liste deines Kontos wählen. Die Auswahl wird in der Verbindung gespeichert.
+1. Fitmin auf deinem Mac unter `http://localhost:3000` öffnen und anmelden. `APP_ORIGIN` muss zur lokalen Adresse passen.
+2. Im Planeditor **Continue with ChatGPT** wählen. Den anschließend angezeigten Anmeldelink auf **demselben Mac** öffnen, auf dem der Fitmin-Server läuft.
+3. In ChatGPT anmelden und die Abo-Nutzung für **Fitmin** freigeben. Die Zugangsdaten werden ausschließlich bei OpenAI eingegeben. Berechtigung und Verfügbarkeit hängen von deinem Konto und der OpenAI-Vorschau ab.
+4. Zu Fitmin zurückkehren, den einmaligen Hinweis bestätigen und ein Modell aus der Liste deines Kontos wählen. Die Auswahl wird in der Verbindung gespeichert.
 5. Trainingswünsche diktieren oder eintippen, optionale Profilfelder ergänzen und **Vorschläge erstellen** wählen.
 
-Unter **ChatGPT-Nutzung verwalten** die Freigabe, Abo-Limits und eventuelle Nutzung zusätzlich gekauften Guthabens prüfen. FitTrack kauft kein Guthaben und nutzt keine API-Abrechnung. Die Abo-Nutzung wird mit anderen verbundenen Apps geteilt. Einstellungen für bezahlte Mehrnutzung oder Nachladen werden in ChatGPT verwaltet und können von FitTrack nicht zugesichert oder verändert werden.
+Unter **ChatGPT-Nutzung verwalten** die Freigabe, Abo-Limits und eventuelle Nutzung zusätzlich gekauften Guthabens prüfen. Fitmin kauft kein Guthaben und nutzt keine API-Abrechnung. Die Abo-Nutzung wird mit anderen verbundenen Apps geteilt. Einstellungen für bezahlte Mehrnutzung oder Nachladen werden in ChatGPT verwaltet und können von Fitmin nicht zugesichert oder verändert werden.
 
-Die Anbindung verwendet den offiziellen [Sign-in-with-ChatGPT-Ablauf](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), nicht vorhandene Codex-Zugangsdaten oder private ChatGPT-Endpunkte. Anmeldung mit State, Nonce, PKCE, geprüftem ID-Token und getrennten Kontoregistrierungen. OAuth-Zugangsdaten liegen atomar gespeichert mit Dateirechten `0600` in `chatgpt-connection.json` neben der SQLite-Datenbank und sind von Git ausgeschlossen. Host-ID und Kontozuordnung bleiben nach Trennen erhalten; lokale Tokens werden entfernt. Bei nicht bestätigbarer serverseitiger Trennung zusätzlich FitTrack in den ChatGPT-Einstellungen entfernen. Nur eine FitTrack-Serverinstanz mit diesem Datenverzeichnis betreiben.
+Eine Limitmeldung bei der ersten Anfrage beweist kein verbrauchtes Plus-Abo. Die App unterscheidet bekannte Fehlercodes für App-/Abo-Nutzungslimits, vorübergehend nicht prüfbare Verfügbarkeit, fehlende Berechtigung und Anfragelimits. Bei unbekanntem HTTP 429 bleibt die Ursache ausdrücklich offen. Es gibt weder automatische Wiederholungen noch einen API-Key-Fallback. Siehe [OpenAI: Errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery). Bestehende ChatGPT-Freigaben können weiterhin den früheren Namen „FitTrack“ anzeigen; neue Registrierungen verwenden „Fitmin“.
+
+Die Anbindung verwendet den offiziellen [Sign-in-with-ChatGPT-Ablauf](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), nicht vorhandene Codex-Zugangsdaten oder private ChatGPT-Endpunkte. Anmeldung mit State, Nonce, PKCE, geprüftem ID-Token und getrennten Kontoregistrierungen. OAuth-Zugangsdaten liegen atomar gespeichert mit Dateirechten `0600` in `chatgpt-connection.json` neben der SQLite-Datenbank und sind von Git ausgeschlossen. Host-ID und Kontozuordnung bleiben nach Trennen erhalten; lokale Tokens werden entfernt. Bei nicht bestätigbarer serverseitiger Trennung zusätzlich Fitmin in den ChatGPT-Einstellungen entfernen. Nur eine Fitmin-Serverinstanz mit diesem Datenverzeichnis betreiben.
 
 **Lokale Einschränkung:** Die direkte Verbindung ist absichtlich auf eine lokale HTTP-Origin beschränkt; auf Railway bzw. einer öffentlichen Domain ist sie deaktiviert. Die [offizielle Dokumentation](https://developers.openai.com/siwc/token-sharing-open-source) unterscheidet lokale/Open-Source-Projekte und gehostete Angebote. Für die gehostete Version funktioniert der folgende Import ohne eigene Modell-API. Ein iPhone kann die Loopback-Anmeldung des Macs nicht selbst abschließen.
 
@@ -46,7 +48,17 @@ Die Anbindung verwendet den offiziellen [Sign-in-with-ChatGPT-Ablauf](https://de
 
 ### Spracheingabe
 
-**Einsprechen → Diktieren stoppen → Text übernehmen** nutzt die eingebaute Spracherkennung des Browsers. Der Text kann vor dem Übernehmen korrigiert werden. FitTrack lädt keine Audiodatei hoch und nutzt keine Transkriptions-API. Je nach Browser kann dessen Spracherkennung Audio an den Browseranbieter senden; sie ist nicht als rein offline zugesichert. Diktieren endet nach spätestens 90 Sekunden oder bei Hintergrundwechsel.
+**Einsprechen → Diktieren stoppen → Text übernehmen** nutzt die eingebaute Spracherkennung des Browsers. Der Text kann vor dem Übernehmen korrigiert werden. Fitmin lädt keine Audiodatei hoch und nutzt keine Transkriptions-API. Je nach Browser kann dessen Spracherkennung Audio an den Browseranbieter senden; sie ist nicht als rein offline zugesichert. Diktieren endet nach spätestens 90 Sekunden oder bei Hintergrundwechsel.
+
+Beim Stoppen bleiben auch sichtbare vorläufige Wörter erhalten. Abschließende Korrekturen werden bis zum Ende-Ereignis, höchstens zwei Sekunden lang, übernommen; danach ist der Text editierbar. Lange Diktate werden nicht abgeschnitten: Über 6.000 Zeichen bleibt der gesamte Text stehen und muss vor der Modellanfrage gekürzt werden. Text bleibt im geöffneten Editor bis zum Verwerfen/Übernehmen, nicht über Neuladen oder Schließen hinweg. Erkennungsqualität und Reaktionszeit hängen weiterhin vom Browser/Sprachdienst ab. Audio direkt über die Abo-Verbindung zu senden wird von diesem [OpenAI-Ablauf nicht unterstützt](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).
+
+Der gemeinsame Masterprompt unterscheidet Standardvorgaben, Einheiten und zulässige Grenzen. Ein einzelnes kurzes JSON-Formbeispiel zeigt die Verschachtelung; die direkte Verbindung überträgt zusätzlich das strikte Schema. Wiederholungen gelten pro Satz, `rest` bezeichnet ausschließlich Sekunden Pause. KI-Vorschläge erlauben 1–6 Arbeitssätze, 1–30 Wiederholungen, RIR 0–5 und 30–300 Sekunden Pause. Diese Grenzen sind keine Empfehlungen; vorhandene manuelle Pläne behalten ihre Werte. Standardvorgaben und Kontextregeln stehen in [plan-prompt.ts](src/lib/plan-prompt.ts).
+
+Beide Wege prüfen Antworten identisch. Ein einzelnes vollständiges JSON-Objekt kann auch aus einer Antwort mit Einleitung/Codeblock gelesen werden. Mehrdeutige, abgeschnittene oder unplausible Antworten werden nicht geraten oder als Teilplan übernommen. Reine Zahlenzeichenketten (auch Dezimalkomma) werden normalisiert; ungültige Angaben konkret mit Feld/Tag/Übung gemeldet.
+
+Unter **Originalantwort von ChatGPT** lässt sich der empfangene Antworttext unverändert ansehen und kopieren, auch bei Fehlern. Bei Fehlern öffnet sich die Ansicht automatisch. Nur öffentlicher Antworttext wird angezeigt, keine internen Denk-, Tool-, Anbieterfehler- oder Zugangsdaten. Die Anzeige bleibt nur im geöffneten Editor und wird beim nächsten Generieren, Übernehmen oder Ausblenden entfernt. Überlange Antworten werden als gekürzter Ausschnitt gekennzeichnet und nicht importiert.
+
+Die Streamauswertung sammelt Text-Deltas, fertige Textteile und fertige Nachrichten ohne doppelte Übernahme. Ein explizites Abschlussereignis bleibt Voraussetzung für einen Plan; unvollständige/fehlgeschlagene Antworten bleiben nur zur Kontrolle sichtbar. Eine neutrale Live-Testanfrage über das bereits verbundene Modell `gpt-5.6-luna` wurde am 06.10.2026 erfolgreich validiert: [unveränderte Testantwort](docs/chatgpt-testantwort.json). Diese Datei enthält ausschließlich den neu erzeugten Testplan, nicht die zuvor fehlgeschlagene Nutzerantwort.
 
 Falls die Web-Spracherkennung fehlt oder der Mikrofonzugriff verweigert wird, in das Textfeld tippen und das Mikrofon der iPhone-/Mac-Tastatur verwenden oder den Text eingeben. Das funktioniert unabhängig von der ChatGPT-Verbindung. Die direkte ChatGPT-Abo-Anbindung unterstützt laut [Preview-Einschränkungen](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations) keine Transkriptions-API.
 
@@ -56,7 +68,7 @@ Jede vorgeschlagene Übung braucht eine Entscheidung. Nur angenommene Übungen w
 
 Ohne genanntes Übungsgewicht bleibt das Startgewicht offen und wird im Editor als **0 kg Platzhalter** übernommen. Vor dem ersten Training passend einstellen. Es werden keine Trainingsgewichte aus Körpermaßen geschätzt.
 
-Rohtext, Profil und abgelehnte Vorschläge werden in FitTrack nicht dauerhaft gespeichert. Direkte Modellanfragen verwenden `store:false` und werden erst nach bestätigtem Abschluss des Datenstroms akzeptiert; Anbieter-Datenregeln gelten zusätzlich. Pro Instanz maximal fünf direkte Vorschlagsanfragen in 15 Minuten und 30 in 24 Stunden; keine automatischen Modell-Retries. Bei Abo-Limit, fehlender Freigabe oder Fehler bleibt die Eingabe erhalten. Der lokale Kopier-/Importweg benötigt keine Modellanfrage durch FitTrack.
+Rohtext, Profil und abgelehnte Vorschläge werden in Fitmin nicht dauerhaft gespeichert. Direkte Modellanfragen verwenden `store:false` und werden erst nach bestätigtem Abschluss des Datenstroms akzeptiert; Anbieter-Datenregeln gelten zusätzlich. Pro Instanz maximal fünf direkte Vorschlagsanfragen in 15 Minuten und 30 in 24 Stunden; keine automatischen Modell-Retries. Bei Abo-Limit, fehlender Freigabe oder Fehler bleibt die Eingabe erhalten. Der lokale Kopier-/Importweg benötigt keine Modellanfrage durch Fitmin.
 
 ## Prüfungen
 

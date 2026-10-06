@@ -23,18 +23,67 @@ export const assistantInputSchema = z
   })
   .strict();
 export type AssistantInput = z.infer<typeof assistantInputSchema>;
+// Bounds for AI suggestions, not targets to maximize or changes to saved plans.
+export const AI_TRAINING_LIMITS = {
+  sets: [1, 6],
+  reps: [1, 30],
+  rir: [0, 5],
+  weight: [0, 500],
+  increment: [0.1, 10],
+  restSeconds: [30, 300],
+} as const;
 export const suggestedExerciseSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     muscle: z.string().trim().min(1).max(50),
     reason: z.string().trim().min(1).max(240),
-    sets: z.number().int().min(1).max(10),
-    minReps: z.number().int().min(1).max(50),
-    maxReps: z.number().int().min(1).max(50),
-    targetRir: z.number().int().min(0).max(10),
-    weight: z.number().min(0).max(1000).nullable(),
-    increment: z.number().min(0.1).max(50),
-    rest: z.number().int().min(0).max(900),
+    sets: z
+      .number()
+      .int()
+      .min(AI_TRAINING_LIMITS.sets[0])
+      .max(AI_TRAINING_LIMITS.sets[1])
+      .describe("Arbeitssätze je Übung; normalerweise 2–4."),
+    minReps: z
+      .number()
+      .int()
+      .min(AI_TRAINING_LIMITS.reps[0])
+      .max(AI_TRAINING_LIMITS.reps[1])
+      .describe(
+        "Untere Wiederholungszahl PRO SATZ, nicht Sekunden oder Gesamtsumme.",
+      ),
+    maxReps: z
+      .number()
+      .int()
+      .min(AI_TRAINING_LIMITS.reps[0])
+      .max(AI_TRAINING_LIMITS.reps[1])
+      .describe("Obere Wiederholungszahl PRO SATZ, mindestens minReps."),
+    targetRir: z
+      .number()
+      .int()
+      .min(AI_TRAINING_LIMITS.rir[0])
+      .max(AI_TRAINING_LIMITS.rir[1])
+      .describe("Wiederholungen in Reserve, normalerweise 2–3."),
+    weight: z
+      .number()
+      .min(AI_TRAINING_LIMITS.weight[0])
+      .max(AI_TRAINING_LIMITS.weight[1])
+      .nullable()
+      .describe(
+        "Nur ausdrücklich genanntes Übungsgewicht in kg, sonst null. Niemals Körpergewicht.",
+      ),
+    increment: z
+      .number()
+      .min(AI_TRAINING_LIMITS.increment[0])
+      .max(AI_TRAINING_LIMITS.increment[1])
+      .describe(
+        "Künftiger Gewichtsschritt in kg, normalerweise 1–2.5; kein Startgewicht.",
+      ),
+    rest: z
+      .number()
+      .int()
+      .min(AI_TRAINING_LIMITS.restSeconds[0])
+      .max(AI_TRAINING_LIMITS.restSeconds[1])
+      .describe("Pause zwischen Sätzen in SEKUNDEN; keine Wiederholungszahl."),
   })
   .strict();
 export const proposalShape = z
@@ -71,7 +120,8 @@ export const proposalSchema = proposalShape.superRefine((plan, ctx) => {
       if (exercise.minReps > exercise.maxReps)
         ctx.addIssue({
           code: "custom",
-          message: "Minimale Wiederholungen dürfen nicht größer als maximale Wiederholungen sein.",
+          message:
+            "Minimale Wiederholungen dürfen nicht größer als maximale Wiederholungen sein.",
           path: ["days", di, "exercises", ei, "maxReps"],
         });
       names.add(name);
@@ -100,3 +150,20 @@ export const acceptedProposalSchema = z
       });
   });
 export type AcceptedProposal = z.infer<typeof acceptedProposalSchema>;
+
+export const MAX_MODEL_REPLY_BYTES = 65536;
+export const modelReplySchema = z
+  .object({
+    text: z.string().max(MAX_MODEL_REPLY_BYTES),
+    status: z.enum([
+      "completed",
+      "incomplete",
+      "refused",
+      "failed",
+      "imported",
+    ]),
+    truncated: z.boolean(),
+  })
+  .strict();
+export type ModelReply = z.infer<typeof modelReplySchema>;
+export type GeneratedPlan = { proposal: PlanProposal; reply: ModelReply };

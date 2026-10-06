@@ -466,3 +466,18 @@ Voraussetzungen für alle folgenden Tests: ein echtes iPhone, Safari, eine über
 - Schritte: Alte Transkriptionsroute aufrufen, Plan ohne Abo-Verbindung anfordern, danach Import nutzen. Git-Status, Dateirechte der ChatGPT-Verbindung und Browser-Speicher prüfen.
 - Erwartetes Ergebnis: Alte Route gesperrt; kein API-Key-Fallback. Import bleibt nutzbar. Tokens nur serverseitig in ignorierter Datei mit 0600, nicht in Browser-Antworten oder Local Storage. Profildaten nicht dauerhaft in FitTrack gespeichert.
 - Ergebnis: noch nicht getestet
+
+## Ergänzungen – Diktat, Modellantworten und Fitness Minimal (06.10.2026)
+
+- Auf echtem Mac/Safari und iPhone mitten in einem Satz stoppen: den vorher sichtbaren Text mit dem fertigen Diktat und den übernommenen Trainingswünschen vergleichen. Auch nur vorläufig erkannten Text, späte Korrekturen, Hintergrundwechsel und Verwerfen prüfen. Maximal zwei Sekunden Abschlusswartezeit; keine doppelten oder verlorenen Satzteile. Ergebnis: noch nicht auf echten Geräten getestet.
+- Mehrere Diktate an vorhandene Wünsche anhängen; bei insgesamt mehr als 6.000 Zeichen muss alles sichtbar bleiben und ein Kürzungshinweis erscheinen. Es darf kein gekürzter Prompt unbemerkt gesendet werden. Ergebnis: noch nicht manuell getestet.
+- Eine echte ChatGPT-Anfrage auslösen. Bei Ablehnung den konkreten Fehlercode prüfen: App-Nutzungslimit, Verfügbarkeit, fehlende Berechtigung oder unbekannter HTTP 429 müssen unterscheidbar sein. Kein automatischer Retry oder API-Key-Fallback. Kontingent/Accountfreigabe werden durch simulierte Tests nicht bestätigt. Ergebnis: noch nicht live getestet.
+- Kompakten Prompt in ChatGPT verwenden und Antwort importieren. Fehlerhafte Satzanzahl, Dezimalkomma als Zahlenstring, fehlendes Gewicht und doppelte Übungen prüfen. Nur harmlose Formatabweichungen werden normalisiert; ungültige Werte mit konkretem Feld zurückweisen. Ergebnis: noch nicht mit echtem Modell getestet.
+- Login und Planeditor auf schmalem und breitem Bildschirm öffnen: „Fitness“ und „Minimal“ stehen untereinander; bisherige Farben bleiben bestehen. Browser-Titel und neue PWA-Installation verwenden „Fitness Minimal“. Bestehende PWA-/OAuth-Namen können zwischengespeichert sein. Ergebnis: Geräteprüfung noch offen.
+
+## Phase 12 – Fitmin und Originalantworten (06.10.2026)
+
+- In der direkten Verbindung einen Vorschlag erstellen. „Originalantwort von ChatGPT“ öffnen und mit der angezeigten Übungsauswahl vergleichen; Antwort kopieren, ausblenden und erneut generieren. Bei einem Antwortfehler muss sich die Ansicht automatisch öffnen. Persönlicher Antworttext darf nicht in Local Storage oder Serverlogs erscheinen. Ergebnis: echte UI-/Geräteprüfung noch offen; eine neutrale direkte Modellanfrage wurde erfolgreich geprüft.
+- Beim Kopierweg Antwort mit Einleitung und JSON-Codeblock einfügen: genau ein vollständiger gültiger Plan wird erkannt. Zwei alternative JSON-Pläne oder abgeschnittenes JSON dürfen nicht still ausgewählt/repariert werden. Ergebnis: automatisiert geprüft, manuelle Prüfung offen.
+- 900 bei Wiederholungen oder Satzpause in einer Testantwort eingeben: konkreter Fehler, Originalantwort weiterhin sichtbar, keine Übungsübernahme. Normale Vorgaben wie 3 Sätze, 8–12 Wiederholungen und 120 Sekunden Pause werden akzeptiert. Ergebnis: automatisiert geprüft.
+- Auf echtem iPhone Login, Kopfzeile und PWA-Namen prüfen: Fitmin mit „Fitness. Minimal.“ als Unterzeile; bisherige Farben. Ergebnis: Geräteprüfung offen.

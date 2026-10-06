@@ -1,16 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { dictationText, updateDictation, type SpeechResult } from "@/lib/dictation";
+import {
+  dictationText,
+  updateDictation,
+  type SpeechResult,
+} from "@/lib/dictation";
 
 type Recognition = {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
-  onresult:
-    | ((event: {
-        results: ArrayLike<SpeechResult>;
-      }) => void)
-    | null;
+  onresult: ((event: { results: ArrayLike<SpeechResult> }) => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
@@ -30,7 +30,9 @@ export function VoiceInput({
   onTranscript: (text: string) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
-  const [phase, setPhase] = useState<"idle" | "listening" | "stopping" | "ready">("idle");
+  const [phase, setPhase] = useState<
+    "idle" | "listening" | "stopping" | "ready"
+  >("idle");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const session = useRef<{
@@ -39,7 +41,13 @@ export function VoiceInput({
     finishTimer: ReturnType<typeof setTimeout> | null;
     stop: (() => void) | null;
     text: string;
-  }>({ recognition: null, timer: null, finishTimer: null, stop: null, text: "" });
+  }>({
+    recognition: null,
+    timer: null,
+    finishTimer: null,
+    stop: null,
+    text: "",
+  });
   const busyCallback = useRef(onBusyChange);
   useEffect(() => {
     busyCallback.current = onBusyChange;
@@ -181,10 +189,7 @@ export function VoiceInput({
           </button>
         )}
         {phase === "listening" && (
-          <button
-            type="button"
-            onClick={() => session.current.stop?.()}
-          >
+          <button type="button" onClick={() => session.current.stop?.()}>
             Diktieren stoppen
           </button>
         )}
@@ -200,7 +205,9 @@ export function VoiceInput({
         </p>
       )}
       {phase === "stopping" && (
-        <p role="status">Diktat wird abgeschlossen … dein Text bleibt erhalten.</p>
+        <p role="status">
+          Diktat wird abgeschlossen … dein Text bleibt erhalten.
+        </p>
       )}
       {phase !== "idle" && (
         <>

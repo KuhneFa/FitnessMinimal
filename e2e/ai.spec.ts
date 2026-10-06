@@ -87,7 +87,16 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/ai/plan", async (route) => {
     submitted = route.request().postDataJSON();
-    await route.fulfill({ json: proposal });
+    await route.fulfill({
+      json: {
+        proposal,
+        reply: {
+          text: JSON.stringify(proposal),
+          status: "completed",
+          truncated: false,
+        },
+      },
+    });
   });
   await login(page);
   const before = (await (await page.request.get("/api/exercises")).json()) as {
@@ -98,6 +107,10 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Verstanden", exact: true }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page).toHaveTitle("Fitmin");
+  await expect(
+    page.getByRole("link", { name: "Fitmin – Startseite" }),
+  ).toBeVisible();
 
   await page
     .getByLabel("Deine Trainingswünsche")
@@ -185,37 +198,51 @@ test("browser dictation never uploads audio and drafts need replacement confirma
   await enableAssistant(page);
   await mockDictation(page);
   let uploads = 0;
+  let submittedWishes = "";
   page.on("request", (req) => {
     if (req.url().includes("/api/ai/transcribe")) uploads++;
   });
-  await page.route("**/api/ai/plan", (route) =>
-    route.fulfill({ json: proposal }),
-  );
+  await page.route("**/api/ai/plan", (route) => {
+    submittedWishes = route.request().postDataJSON().wishes;
+    return route.fulfill({
+      json: {
+        proposal,
+        reply: {
+          text: JSON.stringify(proposal),
+          status: "completed",
+          truncated: false,
+        },
+      },
+    });
+  });
   await login(page);
   await page.goto("/plans/new");
   await page.getByLabel("Planname").fill("Mein vorhandener Entwurf");
   await page.getByRole("button", { name: "Einsprechen", exact: true }).click();
   await expect(page.getByText(/Diktieren läuft/)).toBeVisible();
+  await expect(page.getByLabel("Erkannter Text")).toHaveValue(
+    "Ich möchte Bankdrücken und Klimmzüge trainieren.",
+  );
   await page
     .getByRole("button", { name: "Diktieren stoppen", exact: true })
     .click();
   await expect(page.getByLabel("Erkannter Text")).toHaveValue(
-    "Ich möchte Bankdrücken und Klimmzüge trainieren.",
+    "Ich möchte Bankdrücken mit 80 kg und Klimmzüge trainieren.",
   );
   await page
     .getByRole("button", { name: "Text übernehmen", exact: true })
     .click();
   await expect(page.getByLabel("Deine Trainingswünsche")).toHaveValue(
-    "Ich möchte Bankdrücken und Klimmzüge trainieren.",
+    "Ich möchte Bankdrücken mit 80 kg und Klimmzüge trainieren.",
   );
   expect(uploads).toBe(0);
-  await page
-    .getByLabel("Deine Trainingswünsche")
-    .fill("Ich möchte Bankdrücken mit 80 kg und Klimmzüge trainieren.");
   await page.getByRole("button", { name: "Vorschläge erstellen →" }).click();
   await page
     .getByRole("button", { name: "Bankdrücken annehmen, Oberkörper A" })
     .click();
+  expect(submittedWishes).toBe(
+    "Ich möchte Bankdrücken mit 80 kg und Klimmzüge trainieren.",
+  );
   await page
     .getByRole("button", { name: "Klimmzüge ablehnen, Oberkörper A" })
     .click();
@@ -235,6 +262,26 @@ test("browser dictation never uploads audio and drafts need replacement confirma
     .fill("Jetzt möchte ich doch ausschließlich meine Beine trainieren.");
   await expect(apply).toBeDisabled();
   await expect(page.getByText(/Deine Angaben wurden geändert/)).toBeVisible();
+  // Second recognition has only interim text and deliberately never emits end.
+  await page.getByRole("button", { name: "Einsprechen", exact: true }).click();
+  await expect(page.getByLabel("Erkannter Text")).toHaveValue(
+    "Nur vorläufig erkannt.",
+  );
+  await page
+    .getByRole("button", { name: "Diktieren stoppen", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Text übernehmen", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Erkannter Text")).toHaveValue(
+    "Nur vorläufig erkannt.",
+  );
+  await page
+    .getByRole("button", { name: "Diktat verwerfen", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Einsprechen", exact: true }),
+  ).toBeEnabled();
 });
 
 test("microphone denial and failed generation keep typing and retry available", async ({
@@ -271,7 +318,9 @@ test("microphone denial and failed generation keep typing and retry available", 
 
 async function mockDictation(page: Page, denied = false) {
   await page.addInitScript((denied) => {
+    let count = 0;
     class Speech {
+      index = count++;
       lang = "";
       continuous = true;
       interimResults = true;
@@ -281,22 +330,46 @@ async function mockDictation(page: Page, denied = false) {
       start() {
         setTimeout(() => {
           if (denied) this.onerror?.({ error: "not-allowed" });
+          else if (this.index === 1)
+            this.onresult?.({
+              results: [
+                { isFinal: false, 0: { transcript: "Nur vorläufig erkannt." } },
+              ],
+            });
           else
             this.onresult?.({
               results: [
                 {
                   isFinal: true,
                   0: {
-                    transcript:
-                      "Ich möchte Bankdrücken und Klimmzüge trainieren.",
+                    transcript: "Ich möchte Bankdrücken",
                   },
+                },
+                {
+                  isFinal: false,
+                  0: { transcript: "und Klimmzüge trainieren." },
                 },
               ],
             });
         }, 10);
       }
       stop() {
-        this.onend?.();
+        if (denied) {
+          this.onend?.();
+          return;
+        }
+        if (this.index === 1) return;
+        setTimeout(() => {
+          this.onresult?.({
+            results: [
+              {
+                isFinal: true,
+                0: { transcript: "Ich möchte Bankdrücken mit 80 kg" },
+              },
+            ],
+          });
+          this.onend?.();
+        }, 100);
       }
       abort() {
         this.onend?.();
@@ -356,7 +429,7 @@ test("manual ChatGPT roundtrip works without a subscription connection and valid
   await page.getByLabel("Antwort aus ChatGPT").fill('{"name":"broken"}');
   await page.getByRole("button", { name: "Vorschlag prüfen" }).click();
   await expect(
-    page.getByText(/Der eingefügte Vorschlag ist ungültig/),
+    page.getByText(/Der KI-Entwurf enthielt ungültige Werte/),
   ).toBeVisible();
   await page
     .getByLabel("Antwort aus ChatGPT")
@@ -405,4 +478,93 @@ test("local OAuth handshake opens a loopback listener, rejects forged callbacks 
   const status = await (await page.request.get("/api/ai/config")).json();
   expect(status.pending).toBe(false);
   expect(status.available).toBe(false);
+});
+
+test("original ChatGPT answer stays inspectable on failure and success, with no automatic retries or HTML execution", async ({
+  page,
+}) => {
+  await enableAssistant(page);
+  const raw =
+    'Hier ist mein Vorschlag, leider ohne JSON.\n<img src=x onerror="alert(1)">';
+  let calls = 0;
+  await page.route("**/api/ai/plan", (route) => {
+    calls++;
+    return calls === 1
+      ? route.fulfill({
+          status: 502,
+          json: {
+            error:
+              "ChatGPT hat keinen eindeutig lesbaren Trainingsplan geliefert. Die Originalantwort ist unten einsehbar; es wurde nichts übernommen.",
+            reply: { text: raw, status: "completed", truncated: false },
+          },
+        })
+      : route.fulfill({
+          json: {
+            proposal,
+            reply: {
+              text: JSON.stringify(proposal),
+              status: "completed",
+              truncated: false,
+            },
+          },
+        });
+  });
+  await login(page);
+  await page.goto("/plans/new");
+  await page.getByLabel("Deine Trainingswünsche").fill(assistantInput.wishes);
+  await page.getByRole("button", { name: "Vorschläge erstellen →" }).click();
+  await expect(page.locator(".assistant").getByRole("alert")).toContainText(
+    "Originalantwort",
+  );
+  await expect(
+    page.getByLabel("Unveränderter Antworttext", { exact: true }),
+  ).toHaveValue(raw);
+  await expect(page.locator(".model-reply img")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Auswahl in den Plan übernehmen" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Deine Trainingswünsche")).toHaveValue(
+    assistantInput.wishes,
+  );
+  expect(calls).toBe(1);
+  await page
+    .getByRole("button", { name: "Antwort kopieren", exact: true })
+    .click();
+  await expect(page.locator(".model-reply").getByRole("status")).toContainText(
+    /Antwort kopiert|kopiere ihn manuell/,
+  );
+  for (const width of [320, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await page.screenshot({
+    path: "test-results/fitmin-original-answer.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Vorschläge erstellen →" }).click();
+  await expect(
+    page.getByRole("heading", { name: `Dein Vorschlag: ${proposal.name}` }),
+  ).toBeVisible();
+  await page.getByText("Originalantwort von ChatGPT", { exact: true }).click();
+  await expect(
+    page.getByLabel("Unveränderter Antworttext", { exact: true }),
+  ).toHaveValue(JSON.stringify(proposal));
+  expect(calls).toBe(2);
+  await page
+    .getByRole("button", { name: "Antwort ausblenden", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Unveränderter Antworttext", { exact: true }),
+  ).toHaveCount(0);
 });

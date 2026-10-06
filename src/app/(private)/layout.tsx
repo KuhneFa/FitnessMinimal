@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Navigation } from "@/components/navigation";
 import { LogoutButton } from "@/components/auth-form";
+import { Brand } from "@/components/brand";
 export const dynamic = "force-dynamic";
 export default async function PrivateLayout({
   children,
@@ -13,8 +14,8 @@ export default async function PrivateLayout({
     <>
       <div className="shell">
         <header className="topbar">
-          <Link href="/" className="brand">
-            fittrack.
+          <Link href="/" aria-label="Fitmin – Startseite">
+            <Brand />
           </Link>
           <LogoutButton />
         </header>

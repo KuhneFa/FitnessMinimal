@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "FitTrack",
-    short_name: "FitTrack",
+    name: "Fitmin",
+    short_name: "Fitmin",
     description: "Dein Training. Dein Fortschritt.",
     start_url: "/",
     scope: "/",
