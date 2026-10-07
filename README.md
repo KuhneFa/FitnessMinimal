@@ -62,6 +62,16 @@ Die Streamauswertung sammelt Text-Deltas, fertige Textteile und fertige Nachrich
 
 Falls die Web-Spracherkennung fehlt oder der Mikrofonzugriff verweigert wird, in das Textfeld tippen und das Mikrofon der iPhone-/Mac-Tastatur verwenden oder den Text eingeben. Das funktioniert unabhängig von der ChatGPT-Verbindung. Die direkte ChatGPT-Abo-Anbindung unterstützt laut [Preview-Einschränkungen](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations) keine Transkriptions-API.
 
+### Neue Übungen und Ausführungshilfe
+
+Beschreibe Ziel, Häufigkeit und verfügbares Equipment; du musst keine Übungen auswendig kennen oder vorher anlegen. Die Bibliothek dient als Referenz für bereits vorhandene Namen. ChatGPT darf passende etablierte Übungen außerhalb der Bibliothek vorschlagen, auch wenn sie noch leer ist. Vorschlagskarten kennzeichnen vorhandene und neue Übungen. Erst nach deinen Einzelentscheidungen und **Auswahl in den Plan übernehmen** werden angenommene neue Übungen angelegt.
+
+Jeder neue KI-Vorschlag enthält eine kurze Ausführungsbeschreibung getrennt von der Begründung. Unter **Ausführung & Video** gibt es außerdem einen Link zur YouTube-Suche nach Übungsname und Technik. Der Link wird von der App gebildet, nicht vom Modell erfunden. Es handelt sich um Suchtreffer, nicht um ein geprüftes Einzelvideo oder eine eingebettete Animation. Erst beim Öffnen des Links wird YouTube aufgerufen; keine Video-API oder zusätzlichen Modellaufrufe.
+
+Bestätigte Beschreibungen werden bei der Übung gespeichert und im Planeditor, beim Training und im Übungsverlauf angezeigt. Vorhandene eigene Beschreibungen werden nicht überschrieben; bislang leere Beschreibungen können mit bestätigten Vorschlägen ergänzt werden. Bei manuell angelegten Übungen ist eine eigene Kurzbeschreibung optional. Ältere importierte Antworten ohne Beschreibung bleiben nutzbar und bieten weiterhin die Videosuche.
+
+Die additive Migration `0006_bored_caretaker.sql` ergänzt vorhandene Übungen um eine anfangs leere Beschreibung. Wie alle Migrationen wird sie beim Öffnen der Datenbank angewendet; bei einem bereits laufenden Entwicklungsserver einmal `npm run db:migrate` ausführen und den Server neu starten.
+
 ### Vorschläge prüfen und speichern
 
 Jede vorgeschlagene Übung braucht eine Entscheidung. Nur angenommene Übungen werden beim Übernehmen in der Bibliothek angelegt oder anhand ihres normalisierten Namens wiederverwendet. Der Plan wird anschließend mit **Plan speichern** gespeichert. Vorhandene Editorentwürfe brauchen eine Ersetzungsbestätigung. Geänderte Wünsche, Profildaten oder ChatGPT-Konten/Modelle sperren einen veralteten Vorschlag.
@@ -106,3 +116,11 @@ Produktiv ausschließlich HTTPS verwenden. Sessions gelten 30 Tage, Logout wider
 SQLite-WAL benötigt die Datenbank und ihre `-wal`/`-shm` Dateien im selben persistenten Verzeichnis. Für konsistente Backups SQLite-Backup verwenden oder den Dienst vor einer Dateikopie stoppen. Railway-Volume-Backups einrichten und Wiederherstellung separat prüfen. Ein persistentes Volume ersetzt kein Backup.
 
 Grundlagen: [Next.js Installation](https://nextjs.org/docs/app/getting-started/installation), [Drizzle SQLite](https://orm.drizzle.team/docs/sqlite/get-started-sqlite), [Railway Volumes](https://docs.railway.com/volumes).
+
+### Ernährungstagebuch
+
+Unter **Tagebuch → Essen** lassen sich Mahlzeiten nach Datum und Mahlzeitentyp erfassen: tippen, Browserdiktat übernehmen oder die Tastatur-Diktierfunktion nutzen. Beschreibungen werden erst mit „Mahlzeit speichern“ dauerhaft in SQLite abgelegt. Kalorien sind optional und können selbst eingetragen oder über die bestehende ChatGPT-Verbindung geschätzt werden. Alternativ steht derselbe Kopier-/Importweg wie beim Trainingsplan bereit. Es wird kein API-Key verwendet und kein kostenpflichtiger Transkriptionsdienst ergänzt.
+
+Eine KI-Schätzung enthält kcal für die gesamte Mahlzeit, eine Spanne und Portionsannahmen. Bei fehlenden Angaben kann die KI eine Rückfrage statt eines Zahlenwerts liefern. Vor dem Speichern lassen sich Annahmen prüfen und Angaben korrigieren. Änderungen an der Beschreibung setzen die vorherigen Kalorien zurück. Tageswerte sind Summen der erfassten Einträge; fehlende Kalorien zählen nicht als null und ein leeres Tagebuch ist keine Aussage über die tatsächliche Nahrungsaufnahme. Einträge können bearbeitet und gelöscht werden; konkurrierende Änderungen werden erkannt.
+
+Migration `0007_red_black_knight.sql` legt die separate Mahlzeitentabelle an. Vorhandene Trainingsdaten bleiben erhalten. Bei einem bereits laufenden Entwicklungsserver `npm run db:migrate` ausführen und den Server neu starten; der Produktionsstart führt Migrationen automatisch aus.

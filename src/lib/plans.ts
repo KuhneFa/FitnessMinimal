@@ -7,6 +7,7 @@ const name = z.string().trim().min(1).max(80);
 export const exerciseSchema = z.object({
   name,
   muscle: z.string().trim().max(50),
+  instructions: z.string().trim().max(600).default(""),
 });
 export const assignmentSchema = z
   .object({

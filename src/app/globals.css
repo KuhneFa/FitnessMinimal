@@ -467,6 +467,28 @@ button:disabled {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.exercise-guide {
+  padding: 12px 0;
+  border-top: 1px solid #dce3d8;
+  overflow-wrap: anywhere;
+}
+.exercise-guide p {
+  margin: 12px 0;
+  white-space: pre-line;
+}
+.exercise-guide a {
+  display: inline-block;
+  padding: 8px 0;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.exercise-guide small {
+  display: block;
+}
+.suggestion-source {
+  font-size: 13px;
+}
 .eyebrow {
   font-size: 12px;
   letter-spacing: 2px;
@@ -637,4 +659,18 @@ main {
 .proposal > small {
   display: block;
   margin-top: 12px;
+}
+
+.diary-tabs { margin-bottom: 24px; }
+.diary-tabs a { text-decoration: underline; text-underline-offset: 4px; }
+.diary-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.nutrition-ai details > .stack { margin-top: 16px; }
+.nutrition-ai summary { cursor: pointer; font-weight: 700; }
+.advice-summary summary { cursor: pointer; font-weight: 700; }
+.advice-summary > .stack { margin-top: 16px; }
+.advice-day { border-top: 1px solid var(--line); padding-top: 16px; }
+.advice-day h3 { margin-bottom: 8px; }
+@media (max-width: 440px) {
+  nav { gap: 2px; padding-inline: 6px; }
+  nav a { padding-inline: 10px; font-size: 13px; }
 }

@@ -15,9 +15,9 @@ export function ModelReplyView({
   const textId = useId();
   const status = {
     completed: "Antwort vollständig empfangen",
-    incomplete: "Antwort unvollständig – kein Plan übernommen",
+    incomplete: "Antwort unvollständig – nichts übernommen",
     refused: "ChatGPT hat die Anfrage abgelehnt",
-    failed: "Anfrage fehlgeschlagen – kein Plan übernommen",
+    failed: "Anfrage fehlgeschlagen – nichts übernommen",
     imported: "Von dir eingefügte Antwort",
   }[reply.status];
   return (
@@ -29,12 +29,12 @@ export function ModelReplyView({
       <div className="stack" style={{ marginTop: 16 }}>
         <p className="muted">
           {status}. Hier steht der empfangene Antworttext vor unserer
-          Verarbeitung. Er bleibt nur in diesem geöffneten Editor.
+          Verarbeitung. Er bleibt nur in dieser geöffneten Ansicht.
         </p>
         {reply.truncated && (
           <p className="error" role="status">
             Die Antwort war zu groß. Angezeigt werden nur die ersten 64 KB;
-            dieser Ausschnitt wurde nicht als Plan übernommen.
+            dieser Ausschnitt wurde nicht übernommen.
           </p>
         )}
         {reply.text ? (

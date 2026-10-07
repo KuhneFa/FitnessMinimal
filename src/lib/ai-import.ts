@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
 import { exercises } from "@/db/schema";
 import { library, planSchema } from "./plans";
@@ -29,8 +30,17 @@ export function importAcceptedProposal(input: AcceptedProposal) {
                 id: randomUUID(),
                 name: item.name,
                 muscle: item.muscle,
+                instructions: item.instructions,
               };
               db.insert(exercises).values(exercise).run();
+              known.set(key, exercise);
+            } else if (!exercise.instructions && item.instructions) {
+              // Only accepted guidance fills a gap; existing user text wins.
+              db.update(exercises)
+                .set({ instructions: item.instructions })
+                .where(eq(exercises.id, exercise.id))
+                .run();
+              exercise = { ...exercise, instructions: item.instructions };
               known.set(key, exercise);
             }
             used.set(exercise.id, exercise);

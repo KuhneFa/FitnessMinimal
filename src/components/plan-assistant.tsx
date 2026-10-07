@@ -4,6 +4,7 @@ import {
   assistantInputSchema,
   proposalSchema,
   modelReplySchema,
+  normalizedExerciseName,
   type ModelReply,
   type PlanProposal,
   type AssistantInput,
@@ -17,10 +18,16 @@ import {
   PlanResponseError,
 } from "@/lib/plan-response";
 import { ModelReplyView } from "./model-reply";
+import { ExerciseGuide } from "./exercise-guide";
 type Choice = "accepted" | "rejected";
 type Imported = {
   plan: PlanInput;
-  exercises: { id: string; name: string; muscle: string }[];
+  exercises: {
+    id: string;
+    name: string;
+    muscle: string;
+    instructions: string;
+  }[];
 };
 type ProfileForm = {
   age: string;
@@ -43,9 +50,11 @@ const optionalNumber = (value: string) =>
 
 export function PlanAssistant({
   hasContent,
+  exerciseLibrary,
   onApply,
 }: {
   hasContent: boolean;
+  exerciseLibrary: { name: string }[];
   onApply: (value: Imported) => void;
 }) {
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -69,6 +78,9 @@ export function PlanAssistant({
   const resultHeading = useRef<HTMLHeadingElement | null>(null);
   const fingerprint = JSON.stringify({ wishes, profile, identity });
   const stale = !!proposal && submitted !== fingerprint;
+  const knownNames = new Set(
+    exerciseLibrary.map((exercise) => normalizedExerciseName(exercise.name)),
+  );
   useEffect(() => () => request.current?.abort(), []);
   function inputData() {
     return assistantInputSchema.safeParse({
@@ -269,8 +281,9 @@ export function PlanAssistant({
       </div>
       <h2 id="assistant-title">Erzähl mir, wie du trainieren willst.</h2>
       <p className="muted">
-        Deine Wunschübungen, dein Ziel, dein Rhythmus. Daraus wird ein
-        Vorschlag, den du Übung für Übung bestätigst.
+        Beschreibe dein Ziel, deine Trainingstage und dein Equipment. ChatGPT
+        schlägt passende Übungen vor – auch neue für deine Bibliothek. Du prüfst
+        die Ausführung und bestätigst jede Übung einzeln.
       </p>
       <ChatGptConnection
         disabled={busy || applying || voiceBusy}
@@ -580,7 +593,17 @@ export function PlanAssistant({
                             : exercise.muscle}
                       </span>
                     </div>
+                    <p className="suggestion-source muted">
+                      {knownNames.has(normalizedExerciseName(exercise.name))
+                        ? "Bereits in deiner Bibliothek"
+                        : "Neu für deine Bibliothek · wird erst nach deiner Bestätigung angelegt"}
+                    </p>
                     <p>{exercise.reason}</p>
+                    <ExerciseGuide
+                      name={exercise.name}
+                      instructions={exercise.instructions}
+                      expanded
+                    />
                     <p className="suggestion-prescription">
                       {exercise.sets} Sätze · {exercise.minReps}–
                       {exercise.maxReps} Wdh. · RIR {exercise.targetRir}

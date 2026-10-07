@@ -86,6 +86,7 @@ export const exercises = sqliteTable("exercises", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   muscle: text("muscle").notNull(),
+  instructions: text("instructions").notNull().default(""),
 });
 export const plans = sqliteTable("plans", {
   id: text("id").primaryKey(),
@@ -123,4 +124,44 @@ export const assignments = sqliteTable(
     rest: integer("rest").notNull(),
   },
   (table) => [index("assignments_dayId_idx").on(table.dayId)],
+);
+
+export const meals = sqliteTable(
+  "meals",
+  {
+    id: text("id").primaryKey(),
+    date: text("date").notNull(),
+    category: text("category").notNull(),
+    description: text("description").notNull(),
+    calories: integer("calories"),
+    caloriesLow: integer("calories_low"),
+    caloriesHigh: integer("calories_high"),
+    source: text("source").notNull(),
+    assumptions: text("assumptions").notNull().default(""),
+    version: integer("version").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("meals_date_idx").on(table.date)],
+);
+
+export const adviceThreads = sqliteTable("advice_threads", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  snapshot: text("snapshot").notNull(),
+  createdAt: integer("created_at").notNull(),
+  version: integer("version").notNull().default(0),
+});
+export const adviceExchanges = sqliteTable(
+  "advice_exchanges",
+  {
+    id: text("id").primaryKey(),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => adviceThreads.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    answer: text("answer").notNull(),
+    createdAt: integer("created_at").notNull(),
+    position: integer("position").notNull(),
+  },
+  (table) => [index("advice_exchanges_thread_idx").on(table.threadId)],
 );

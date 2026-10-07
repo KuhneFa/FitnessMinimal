@@ -5,7 +5,9 @@ export async function POST(request: Request) {
   try {
     await authorize(request);
     return json(
-      importAcceptedProposal(await readJson(request, acceptedProposalSchema)),
+      importAcceptedProposal(
+        await readJson(request, acceptedProposalSchema, 65536),
+      ),
     );
   } catch (e) {
     return errorResponse(e);

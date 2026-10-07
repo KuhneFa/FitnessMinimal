@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { library } from "@/lib/plans";
 import { exerciseHistory } from "@/lib/workouts";
+import { ExerciseGuide } from "@/components/exercise-guide";
 export default async function ExerciseHistory({
   params,
   searchParams,
@@ -26,6 +27,11 @@ export default async function ExerciseHistory({
         Übungsverlauf · {exercise.muscle}
       </p>
       <h1>{exercise.name}</h1>
+      <ExerciseGuide
+        name={exercise.name}
+        instructions={exercise.instructions}
+        expanded
+      />
       <p className="muted">
         Deine letzten Arbeitssätze, Training für Training.
       </p>

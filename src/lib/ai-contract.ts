@@ -37,6 +37,13 @@ export const suggestedExerciseSchema = z
     name: z.string().trim().min(1).max(80),
     muscle: z.string().trim().min(1).max(50),
     reason: z.string().trim().min(1).max(240),
+    instructions: z
+      .string()
+      .trim()
+      .max(600)
+      .describe(
+        "Kurze Ausführung auf Deutsch: Ausgangsposition, Bewegung und ein wichtiger Technikhinweis. Keine Links. Leer nur bei fehlender Anleitung in älteren importierten Antworten.",
+      ),
     sets: z
       .number()
       .int()

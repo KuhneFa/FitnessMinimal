@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import type { Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { proposal, assistantInput } from "../tests/fixtures/ai";
 
@@ -102,6 +103,9 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   const before = (await (await page.request.get("/api/exercises")).json()) as {
     name: string;
   }[];
+  expect(before.some((exercise) => exercise.name === "Bankdrücken")).toBe(
+    false,
+  );
   const plansBefore = await (await page.request.get("/api/plans")).json();
   await page.goto("/plans/new");
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -136,6 +140,24 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
     focus: "Muskelaufbau",
     daysPerWeek: 2,
   });
+  const newExercise = page.getByRole("article", {
+    name: "Oberkörper A: Bankdrücken",
+    exact: true,
+  });
+  await expect(newExercise.getByText(/Neu für deine Bibliothek/)).toBeVisible();
+  await expect(
+    newExercise.getByText(proposal.days[0].exercises[0].instructions, {
+      exact: true,
+    }),
+  ).toBeVisible();
+  const videos = newExercise.getByRole("link", {
+    name: "Videosuche zur Ausführung: Bankdrücken",
+  });
+  const videoUrl = new URL((await videos.getAttribute("href"))!);
+  expect(videoUrl.origin).toBe("https://www.youtube.com");
+  expect(videoUrl.searchParams.get("search_query")).toBe(
+    "Bankdrücken richtige Ausführung Technik",
+  );
   const apply = page.getByRole("button", {
     name: "Auswahl in den Plan übernehmen",
   });
@@ -171,6 +193,10 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   await expect(page.getByLabel("Planname")).toHaveValue(proposal.name);
   await expect(page.getByLabel("Start kg")).toHaveValue("80");
   const after = await (await page.request.get("/api/exercises")).json();
+  expect(
+    after.find((exercise: { name: string }) => exercise.name === "Bankdrücken")
+      .instructions,
+  ).toBe(proposal.days[0].exercises[0].instructions);
   expect(after.length).toBe(before.length + 1);
   expect(after.some((e: { name: string }) => e.name === "Klimmzüge")).toBe(
     false,
@@ -189,6 +215,17 @@ test("optional profile, explicit review, accepted-only import and normal plan sa
   await expect(page).toHaveURL(/\/plans$/);
   await expect(
     page.getByRole("heading", { name: proposal.name, exact: true }),
+  ).toBeVisible();
+  const savedPlans = await (await page.request.get("/api/plans")).json();
+  const savedPlan = savedPlans.find(
+    (plan: { name: string }) => plan.name === proposal.name,
+  );
+  await page.goto(`/plans/${savedPlan.id}`);
+  await page.locator(".assignment .exercise-guide summary").click();
+  await expect(
+    page
+      .locator(".assignment")
+      .getByText(proposal.days[0].exercises[0].instructions, { exact: true }),
   ).toBeVisible();
 });
 

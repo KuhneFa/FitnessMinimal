@@ -23,6 +23,8 @@ export const proposal: PlanProposal = {
           name: "Bankdrücken",
           muscle: "Brust",
           reason: "Deine gewünschte Druckübung.",
+          instructions:
+            "Lege dich stabil auf die Bank. Senke die Hantel kontrolliert zur Brust und drücke sie wieder hoch; halte die Schulterblätter stabil.",
           sets: 3,
           minReps: 8,
           maxReps: 10,
@@ -35,6 +37,8 @@ export const proposal: PlanProposal = {
           name: "Klimmzüge",
           muscle: "Rücken",
           reason: "Ergänzt die Zugbewegung.",
+          instructions:
+            "Greife die Stange etwas breiter als schulterbreit. Ziehe dich kontrolliert nach oben und senke dich langsam ab; vermeide Schwung.",
           sets: 3,
           minReps: 6,
           maxReps: 10,

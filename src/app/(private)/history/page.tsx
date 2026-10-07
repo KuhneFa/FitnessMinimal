@@ -12,12 +12,13 @@ export default async function History({
   const rows = historyPage(page);
   return (
     <main>
-      <p className="eyebrow">Deine Arbeit zählt</p>
+      <p className="eyebrow">Dein Tagebuch · Training</p>
       <h1>
         Dein Fortschritt.
         <br />
         Training für Training.
       </h1>
+      <div className="row diary-tabs"><Link href="/diary">← Essen</Link><strong>Training</strong></div>
       {!rows.length && (
         <section className="card">
           <h2>Noch ein unbeschriebenes Blatt.</h2>

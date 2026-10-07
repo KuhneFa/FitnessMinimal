@@ -13,9 +13,17 @@ export function Navigation() {
         },
         { href: "/plans", label: "Pläne", active: path.startsWith("/plans") },
         {
-          href: "/history",
-          label: "Historie",
-          active: path.startsWith("/history") || path.startsWith("/exercises/"),
+          href: "/diary",
+          label: "Tagebuch",
+          active:
+            path.startsWith("/diary") ||
+            path.startsWith("/history") ||
+            path.startsWith("/exercises/"),
+        },
+        {
+          href: "/advice",
+          label: "Beratung",
+          active: path.startsWith("/advice"),
         },
       ].map((item) => (
         <Link

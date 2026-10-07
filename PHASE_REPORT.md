@@ -152,3 +152,29 @@ Prüfungen:
 - `git diff --check` bestanden; keine neuen Abhängigkeiten.
 
 Die ursprünglich fehlgeschlagene Nutzerantwort war nicht gespeichert und ist rückwirkend nicht rekonstruierbar. Die konkrete damalige Ursache ist daher nicht bewiesen. Der neue Ablauf ist mit einer echten Modellantwort und simulierten Format-/Streamfehlern geprüft, garantiert aber nicht, dass jede künftige Modellantwort inhaltlich oder strukturell gültig ist; ungültige Antworten bleiben überprüfbar und werden nicht als Trainingsplan übernommen. Echte Safari-/iPhone-Geräteprüfung bleibt offen.
+
+## Phase 13 – Neue Übungsvorschläge mit Ausführungshilfe – 07.10.2026
+
+Der Masterprompt behandelt die Bibliothek jetzt ausdrücklich als Referenz, nicht als Auswahllimit. Auch ohne vorhandene Übungen darf das Modell etablierte Übungen passend zu Ziel, Trainingstagen und Equipment vorschlagen. Jede neue Antwort soll eine kurze deutsche Ausführungsbeschreibung enthalten; ältere importierte Antworten ohne dieses Feld bleiben lesbar.
+
+Vorschlagskarten unterscheiden vorhandene und neue Übungen. Beschreibung und eine klar bezeichnete YouTube-Videosuche sind direkt sichtbar. Die App erzeugt Suchlinks selbst aus dem Übungsnamen; es werden keine vom Modell erfundenen Video-Adressen übernommen. Suchergebnisse sind keine geprüften Einzelvideos oder eingebetteten Animationen. Dafür erfolgen keine zusätzlichen API-Aufrufe.
+
+Nur bestätigte Vorschläge werden gespeichert. Beschreibungen bleiben im Planeditor, Training und Übungsverlauf verfügbar. Bestehende eigene Beschreibungen werden nicht überschrieben; leere Beschreibungen können durch bestätigte Vorschläge ergänzt werden. Auch beim manuellen Anlegen gibt es ein optionales Beschreibungsfeld. Migration `0006_bored_caretaker.sql` ergänzt die bestehende Bibliothek um dieses Feld und wurde nach den Prüfungen erfolgreich auf die lokale Datenbank angewendet.
+
+Prüfungen:
+
+- Typecheck, ESLint, **62 Unit-/Integrationstests** und Production Build bestanden.
+- **9 Chromium-End-to-End-Tests bestanden**, einschließlich neuer Übungen ohne vorherigen Bibliothekseintrag, Beschreibung und Videosuche, Speicherung erst nach Bestätigung sowie erneutem Öffnen des gespeicherten Plans.
+- Regressionen prüfen die additive Migration mit vorhandenen Daten, Erhalt eigener Beschreibungen, ältere JSON-Antworten, Beschreibungsgrenzen und sichere Suchlinks.
+- axe ohne Befunde in den geprüften Regeln; mobile Breiten 320/375/390/430 ohne horizontalen Überlauf. Assistenten-Screenshot visuell geprüft.
+- `git diff --check` bestanden; keine neuen npm-Abhängigkeiten.
+
+Für diese Erweiterung wurde keine echte Modellanfrage ausgeführt; die neuen Modellantworten in den Tests sind simuliert. Die tatsächliche Qualität der Beschreibungen sowie reale Mobilgeräte und externe Videosuche bleiben manuell zu prüfen. Die frühere Live-Anfrage aus Phase 12 ist keine Live-Prüfung des erweiterten Prompts.
+
+## Phase 14 – Ernährungstagebuch – 07.10.2026
+
+Implementiert und vor Beginn der Beratung geprüft: Mahlzeiten per Text oder bestehendem Browserdiktat, Datum und Mahlzeitentyp, optionale eigene Kalorien sowie KI-Schätzung mit Spanne, Portionsannahmen und Rückfragen bei fehlenden Mengen. Speicherung erst nach Bestätigung; Bearbeiten/Löschen mit Versionsprüfung. Tageswerte entstehen aus gespeicherten Einträgen, unbekannte Kalorien und nicht protokollierte Tage bleiben ausdrücklich unbekannt. Navigation „Tagebuch“ mit Essen und Verweis auf bisherige Trainingseinträge. Migration 0007 ergänzt eine separate Mahlzeitentabelle.
+
+Der bestehende Abo-Transport wurde für strukturierte Antworten wiederverwendbar gemacht; Planantworten und ihre Fehlerschutzmechanismen bleiben regressionsgeprüft. Auch Ernährung unterstützt Kopier-/Importweg und sichtbare Originalantworten. Keine kostenpflichtige API und keine zusätzliche Abhängigkeit.
+
+Typecheck, ESLint, **66 Unit-/Integrationstests**, Production Build und **10 Chromium-End-to-End-Tests** bestanden. Die Erweiterung der Testsuite erforderte ein isoliertes Login-Budget pro Test in der temporären Datenbank; das produktive Login-Limit wurde nicht geändert. axe ohne Befunde und mobile Breiten 320/375/390/430 ohne Überlauf in der Tagebuchprüfung. Neue Modellantworten sind simuliert; keine echte Ernährungsanfrage oder echte Geräte-Spracherkennung getestet.

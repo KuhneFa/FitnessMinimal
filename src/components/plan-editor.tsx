@@ -3,7 +3,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PlanInput } from "@/lib/plans";
 import { PlanAssistant } from "./plan-assistant";
-type Exercise = { id: string; name: string; muscle: string };
+import { ExerciseGuide } from "./exercise-guide";
+type Exercise = {
+  id: string;
+  name: string;
+  muscle: string;
+  instructions: string;
+};
 const defaults = {
   sets: 3,
   minReps: 8,
@@ -39,6 +45,7 @@ export function PlanEditor({
   return (
     <>
       <PlanAssistant
+        exerciseLibrary={exercises}
         hasContent={
           !!plan.name.trim() ||
           plan.days.some(
@@ -148,6 +155,16 @@ export function PlanEditor({
                     Entfernen
                   </button>
                 </div>
+                <ExerciseGuide
+                  name={
+                    exercises.find((e) => e.id === item.exerciseId)?.name ||
+                    "Übung"
+                  }
+                  instructions={
+                    exercises.find((e) => e.id === item.exerciseId)
+                      ?.instructions
+                  }
+                />
                 <div className="config-grid">
                   {(
                     [
@@ -265,6 +282,7 @@ export function PlanEditor({
                 body: JSON.stringify({
                   name: values.get("name"),
                   muscle: values.get("muscle"),
+                  instructions: values.get("instructions"),
                 }),
               });
               const data = await res.json();
@@ -285,6 +303,15 @@ export function PlanEditor({
           <label>
             Muskelgruppe
             <input name="muscle" maxLength={50} />
+          </label>
+          <label>
+            Kurzbeschreibung (optional)
+            <textarea
+              name="instructions"
+              maxLength={600}
+              rows={3}
+              placeholder="Ausgangsposition, Bewegung und ein wichtiger Technikhinweis …"
+            />
           </label>
           <button>Übung anlegen</button>
         </form>

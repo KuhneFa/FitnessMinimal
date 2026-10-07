@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync, spawn } from "node:child_process";
 import { hashPassword } from "../src/lib/security";
-const dir = mkdtempSync(join(tmpdir(), "fittrack-e2e-"));
+const dir =
+  process.env.FITMIN_E2E_DIRECTORY ||
+  mkdtempSync(join(tmpdir(), "fittrack-e2e-"));
 const env = {
   ...process.env,
   DATABASE_PATH: join(dir, "test.db"),

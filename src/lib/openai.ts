@@ -156,16 +156,16 @@ const envelopeSchema = z.object({
   status: z.string(),
   output: z.array(messageSchema).default([]),
 });
-export function parseCompletedProposal(
+export function parseCompletedReply(
   raw: unknown,
   streamedText = "",
   streamedRefusal = false,
-): GeneratedPlan {
+): ModelReply {
   const envelope = envelopeSchema.safeParse(raw);
   if (!envelope.success)
     throw new PlanGenerationError(
       502,
-      "Der Planentwurf war unvollständig. Die empfangene Antwort bleibt unten einsehbar.",
+      "Die KI-Antwort war unvollständig. Die empfangene Antwort bleibt unten einsehbar.",
       modelReply(streamedText, "incomplete"),
     );
   const content = envelope.data.output.flatMap((item) =>
@@ -190,13 +190,13 @@ export function parseCompletedProposal(
   if (refused)
     throw new PlanGenerationError(
       422,
-      "Für diese Anfrage konnte kein Trainingsplan vorgeschlagen werden. Die Originalantwort steht unten.",
+      "ChatGPT hat diese Anfrage abgelehnt. Die Originalantwort steht unten.",
       reply,
     );
   if (reply.status !== "completed")
     throw new PlanGenerationError(
       502,
-      "Der Planentwurf war unvollständig. Die empfangene Antwort bleibt unten einsehbar.",
+      "Die KI-Antwort war unvollständig. Die empfangene Antwort bleibt unten einsehbar.",
       reply,
     );
   if (reply.truncated)
@@ -205,6 +205,14 @@ export function parseCompletedProposal(
       "Die ChatGPT-Antwort ist zu groß. Unten siehst du einen gekennzeichneten Ausschnitt; es wurde nichts übernommen.",
       reply,
     );
+  return reply;
+}
+export function parseCompletedProposal(
+  raw: unknown,
+  streamedText = "",
+  streamedRefusal = false,
+): GeneratedPlan {
+  const reply = parseCompletedReply(raw, streamedText, streamedRefusal);
   try {
     return { proposal: parsePlanResponse(reply.text), reply };
   } catch (error) {
@@ -217,9 +225,10 @@ export function parseCompletedProposal(
     );
   }
 }
-export async function readProposalStream(
+export async function readResponseStream<T>(
   response: Response,
-): Promise<GeneratedPlan> {
+  complete: (raw: unknown, text: string, refused: boolean) => T,
+): Promise<T> {
   const reader = response.body?.getReader();
   if (!reader)
     throw new PlanGenerationError(
@@ -260,7 +269,7 @@ export async function readProposalStream(
     typeof value === "number" && Number.isInteger(value) && value >= 0
       ? value
       : 0;
-  const eventBlock = (block: string): GeneratedPlan | null => {
+  const eventBlock = (block: string): T | null => {
     const data = block
       .split(/\r?\n/)
       .filter((line) => line.startsWith("data:"))
@@ -329,19 +338,19 @@ export async function readProposalStream(
     if (event.type === "response.incomplete") {
       const envelope = envelopeSchema.safeParse(event.response);
       if (envelope.success)
-        parseCompletedProposal(
+        parseCompletedReply(
           { ...envelope.data, status: "incomplete" },
           answerText(),
           refused,
         );
       throw new PlanGenerationError(
         502,
-        "Der Planentwurf war unvollständig. Die empfangene Antwort bleibt unten einsehbar.",
+        "Die KI-Antwort war unvollständig. Die empfangene Antwort bleibt unten einsehbar.",
         modelReply(answerText(), "incomplete"),
       );
     }
     if (event.type === "response.completed")
-      return parseCompletedProposal(event.response, answerText(), refused);
+      return complete(event.response, answerText(), refused);
     return null;
   };
   let buffer = "",
@@ -390,12 +399,20 @@ export async function readProposalStream(
     await reader.cancel().catch(() => undefined);
   }
 }
-export async function generateWithChatGpt(
-  input: AssistantInput,
-  exerciseLibrary: { name: string; muscle: string }[],
+export function readProposalStream(response: Response): Promise<GeneratedPlan> {
+  return readResponseStream(response, parseCompletedProposal);
+}
+export async function requestStructuredWithChatGpt<T>(
+  request: {
+    instructions: string;
+    input: string;
+    name: string;
+    schema: Record<string, unknown>;
+    parse: (text: string) => T;
+  },
   account: ChatGptAccount,
   transport: typeof fetch = fetch,
-): Promise<GeneratedPlan> {
+): Promise<{ proposal: T; reply: ModelReply }> {
   if (
     !account.accessToken ||
     !account.scopes.includes("chatgpt.tokens.use.direct")
@@ -414,14 +431,14 @@ export async function generateWithChatGpt(
         model: account.model,
         store: false,
         stream: true,
-        instructions: planInstructions,
-        input: [{ role: "user", content: planRequest(input, exerciseLibrary) }],
+        instructions: request.instructions,
+        input: [{ role: "user", content: request.input }],
         text: {
           format: {
             type: "json_schema",
-            name: "training_plan",
+            name: request.name,
             strict: true,
-            schema: planJsonSchema(),
+            schema: request.schema,
           },
         },
       }),
@@ -434,7 +451,20 @@ export async function generateWithChatGpt(
         response.status,
         await response.json().catch(() => null),
       );
-    return await readProposalStream(response);
+    return await readResponseStream(response, (raw, text, refused) => {
+      const reply = parseCompletedReply(raw, text, refused);
+      try {
+        return { proposal: request.parse(reply.text), reply };
+      } catch (error) {
+        throw new PlanGenerationError(
+          502,
+          error instanceof Error
+            ? error.message
+            : "Die Antwort konnte nicht gelesen werden.",
+          reply,
+        );
+      }
+    });
   } catch (e) {
     if (e instanceof HttpError) throw e;
     throw new HttpError(
@@ -442,6 +472,24 @@ export async function generateWithChatGpt(
       "ChatGPT ist nicht erreichbar oder die Antwort dauert zu lange. Deine Angaben bleiben erhalten. Bitte erneut versuchen.",
     );
   }
+}
+export function generateWithChatGpt(
+  input: AssistantInput,
+  exerciseLibrary: { name: string; muscle: string }[],
+  account: ChatGptAccount,
+  transport: typeof fetch = fetch,
+): Promise<GeneratedPlan> {
+  return requestStructuredWithChatGpt(
+    {
+      instructions: planInstructions,
+      input: planRequest(input, exerciseLibrary),
+      name: "training_plan",
+      schema: planJsonSchema(),
+      parse: parsePlanResponse,
+    },
+    account,
+    transport,
+  );
 }
 export async function generateProposal(
   input: AssistantInput,

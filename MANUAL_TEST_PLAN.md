@@ -481,3 +481,11 @@ Voraussetzungen für alle folgenden Tests: ein echtes iPhone, Safari, eine über
 - Beim Kopierweg Antwort mit Einleitung und JSON-Codeblock einfügen: genau ein vollständiger gültiger Plan wird erkannt. Zwei alternative JSON-Pläne oder abgeschnittenes JSON dürfen nicht still ausgewählt/repariert werden. Ergebnis: automatisiert geprüft, manuelle Prüfung offen.
 - 900 bei Wiederholungen oder Satzpause in einer Testantwort eingeben: konkreter Fehler, Originalantwort weiterhin sichtbar, keine Übungsübernahme. Normale Vorgaben wie 3 Sätze, 8–12 Wiederholungen und 120 Sekunden Pause werden akzeptiert. Ergebnis: automatisiert geprüft.
 - Auf echtem iPhone Login, Kopfzeile und PWA-Namen prüfen: Fitmin mit „Fitness. Minimal.“ als Unterzeile; bisherige Farben. Ergebnis: Geräteprüfung offen.
+
+## Phase 13 – Neue KI-Übungen und Ausführungshilfe (07.10.2026)
+
+- Nur Ziel, Häufigkeit und Equipment nennen, keine Übung vorauswählen. Mit kleiner/leerer Bibliothek Vorschläge erstellen: passende neue Übungen und verständliche Beschreibungen werden erwartet. Die Bibliothek ist keine Whitelist. Ergebnis: Modellantworten automatisiert simuliert; echte Modellprüfung dieser Erweiterung noch offen.
+- Eine neue Übung annehmen, eine andere ablehnen. Erst Auswahl übernehmen: nur angenommene neue Übungen samt Beschreibung werden angelegt. Plan speichern und erneut öffnen; Anleitung und Videosuche bleiben vorhanden. Ergebnis: automatisierte Prüfung, Geräteprüfung offen.
+- Eine vorhandene Übung mit eigener Beschreibung vorschlagen lassen und übernehmen: eigener Text bleibt erhalten. Ohne alte Beschreibung darf der bestätigte Vorschlag die Lücke füllen. Ergebnis: automatisiert geprüft.
+- Während des Trainings „Ausführung & Video“ öffnen; Beschreibung lesen, Videosuche öffnen und zur App zurückkehren. Link muss YouTube mit passendem Übungsnamen öffnen. Kein eingebettetes Video oder automatischer Medienaufruf. Ergebnis: echte mobile Navigation/YouTube-Suche noch manuell prüfen.
+- Ältere JSON-Antwort ohne instructions importieren: gültiger Plan bleibt nutzbar, fehlende Beschreibung wird kenntlich gemacht, Videosuche funktioniert. Ergebnis: automatisiert geprüft.

@@ -13,6 +13,8 @@ import {
   readProposalStream,
 } from "../src/lib/openai";
 import { parsePlanResponse } from "../src/lib/plan-response";
+import { exerciseVideoSearch } from "../src/lib/exercise-guide";
+import { getWorkout, startWorkout } from "../src/lib/workouts";
 import {
   manualPlanPrompt,
   planFormatExample,
@@ -40,7 +42,7 @@ const sse = (value: unknown) =>
 import { consumeAiBudget } from "../src/lib/ai-budget";
 import { importAcceptedProposal } from "../src/lib/ai-import";
 import { openDatabase, getDatabase } from "../src/db";
-import { library, listPlans } from "../src/lib/plans";
+import { library, listPlans, savePlan } from "../src/lib/plans";
 process.env.OPENAI_API_KEY = "unit-test-key-never-real";
 const envelope = (value: unknown) => ({
   status: "completed",
@@ -134,7 +136,7 @@ test("incomplete outputs and refusals do not become plans", async () => {
         output: [{ type: "message", content: [{ type: "refusal" }] }],
       }),
     ),
-    /kein Trainingsplan/,
+    /Anfrage abgelehnt/,
   );
   await assert.rejects(
     generateProposal(
@@ -256,7 +258,7 @@ test("manual ChatGPT prompt includes compact format, voluntary context and libra
   assert.match(prompt, /Bankdrücken/);
   assert.match(prompt, /Alle Schlüssel erforderlich/);
   assert.ok(
-    prompt.length < 3500,
+    prompt.length < 4500,
     "Keep the manual prompt compact for this fixture",
   );
   assert.ok(
@@ -387,13 +389,35 @@ test("only accepted exercises are imported; matching library entries are reused;
   const first = importAcceptedProposal(accepted);
   assert.equal(first.plan.days[0].exercises[0].exerciseId, id);
   assert.equal(library().length, 1);
+  assert.equal(
+    library()[0].instructions,
+    proposal.days[0].exercises[0].instructions,
+  );
   assert.equal(listPlans().length, 0);
   const all = { name: proposal.name, days: proposal.days };
   const imported = importAcceptedProposal(all);
   assert.equal(imported.plan.days[0].exercises[1].weight, 0);
   assert.equal(library().length, 2);
+  assert.equal(
+    library().find((e) => e.name === "Klimmzüge")?.instructions,
+    proposal.days[0].exercises[1].instructions,
+  );
+  sqlite
+    .prepare("UPDATE exercises SET instructions = ? WHERE id = ?")
+    .run("Meine eigene bewährte Anleitung.", id);
   importAcceptedProposal(all);
+  assert.equal(
+    library().find((e) => e.id === id)?.instructions,
+    "Meine eigene bewährte Anleitung.",
+  );
   assert.equal(library().length, 2);
+  const planId = savePlan(imported.plan);
+  const plan = listPlans().find((p) => p.id === planId)!;
+  const workout = getWorkout(startWorkout(plan.days[0].id));
+  assert.equal(
+    workout.exercises.find((e) => e.name === "Klimmzüge")?.instructions,
+    proposal.days[0].exercises[1].instructions,
+  );
   assert.throws(() => importAcceptedProposal({ name: "bad", days: [] }));
   assert.equal(library().length, 2);
   sqlite.close();
@@ -605,4 +629,51 @@ test("oversized public replies are visibly truncated and rejected, never importe
       new TextEncoder().encode(error.reply.text).length <= 65536 &&
       /zu groß/.test(error.message),
   );
+});
+
+test("empty libraries still allow new model exercises and older responses need no invented guidance", async () => {
+  const generated = await generateProposal(
+    assistantInput,
+    [],
+    async (_url, init) => {
+      const body = JSON.parse(init!.body as string);
+      assert.deepEqual(
+        JSON.parse(body.input[0].content).availableExercises,
+        [],
+      );
+      assert.match(body.instructions, /Bibliothek ist keine Auswahlliste/);
+      assert.match(body.instructions, /auch etablierte Übungen außerhalb/);
+      assert.match(body.instructions, /Ausgangsposition, Bewegungsablauf/);
+      return sse(envelope(proposal));
+    },
+  );
+  assert.equal(generated.days[0].exercises.length, 2);
+  const old = JSON.parse(JSON.stringify(proposal));
+  delete old.days[0].exercises[0].instructions;
+  assert.equal(
+    parsePlanResponse(JSON.stringify(old)).days[0].exercises[0].instructions,
+    "",
+  );
+  old.days[0].exercises[0].instructions = "x".repeat(601);
+  assert.throws(
+    () => parsePlanResponse(JSON.stringify(old)),
+    /Ausführungsbeschreibung/,
+  );
+});
+
+test("video search uses a fixed host and encodes exercise names without model-supplied URLs", () => {
+  for (const name of [
+    "Klimmzüge",
+    "Rudern & Ziehen / Kabel",
+    'https://evil.example/?x="<script>',
+  ]) {
+    const url = new URL(exerciseVideoSearch(name));
+    assert.equal(url.origin, "https://www.youtube.com");
+    assert.equal(url.pathname, "/results");
+    assert.equal(
+      url.searchParams.get("search_query"),
+      `${name} richtige Ausführung Technik`,
+    );
+    assert.deepEqual([...url.searchParams.keys()], ["search_query"]);
+  }
 });

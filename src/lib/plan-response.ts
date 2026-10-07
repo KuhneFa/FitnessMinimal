@@ -17,6 +17,7 @@ const fields: Record<string, string> = {
   exercises: "Übungen (1–8 je Tag)",
   muscle: "Muskelgruppe (1–50 Zeichen)",
   reason: "Begründung (1–240 Zeichen)",
+  instructions: "Ausführungsbeschreibung (höchstens 600 Zeichen)",
   sets: `Sätze (ganze Zahl von ${limits.sets[0]} bis ${limits.sets[1]})`,
   minReps: `Minimale Wiederholungen pro Satz (${limits.reps[0]}–${limits.reps[1]})`,
   maxReps: `Maximale Wiederholungen pro Satz (${limits.reps[0]}–${limits.reps[1]})`,
@@ -86,7 +87,7 @@ export function modelReply(
 
 // Extract one complete object from a reply with surrounding prose. Never repair
 // incomplete JSON, select between competing objects, or change prescription values.
-function embeddedObject(text: string): string | null {
+export function embeddedObject(text: string): string | null {
   const objects: string[] = [];
   let depth = 0,
     start = -1,
@@ -145,6 +146,10 @@ export function parsePlanResponse(source: string): PlanProposal {
       if (!isObject(day) || !Array.isArray(day.exercises)) continue;
       for (const exercise of day.exercises) {
         if (!isObject(exercise)) continue;
+        // Older exported answers did not contain guidance. Keep them usable
+        // without inventing an instruction or inferring it from the rationale.
+        if (!Object.hasOwn(exercise, "instructions"))
+          exercise.instructions = "";
         for (const key of numericFields) {
           const raw = exercise[key];
           if (typeof raw === "string" && /^-?\d+(?:[.,]\d+)?$/.test(raw.trim()))

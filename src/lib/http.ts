@@ -21,6 +21,7 @@ export async function authorize(request: Request) {
 export async function readJson<T>(
   request: Request,
   schema: z.ZodType<T>,
+  maxBytes = 32768,
 ): Promise<T> {
   if (!request.headers.get("content-type")?.includes("application/json"))
     throw new HttpError(415, "JSON erwartet.");
@@ -32,7 +33,7 @@ export async function readJson<T>(
     const { done, value } = await reader.read();
     if (done) break;
     length += value.length;
-    if (length > 32768) {
+    if (length > maxBytes) {
       await reader.cancel();
       throw new HttpError(413, "Anfrage zu groß.");
     }

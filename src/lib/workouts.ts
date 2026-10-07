@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { eq, asc, and, desc, isNotNull } from "drizzle-orm";
 import { getDatabase } from "@/db";
-import { workouts, workoutExercises, workoutSets } from "@/db/schema";
+import {
+  workouts,
+  workoutExercises,
+  workoutSets,
+  exercises as exerciseLibrary,
+} from "@/db/schema";
 import { listPlans, library } from "./plans";
 import { HttpError } from "./http";
 import { recommendWeight } from "./progression";
@@ -60,13 +65,21 @@ export function getWorkout(id: string) {
   return {
     ...workout,
     exercises: db
-      .select()
+      .select({
+        exercise: workoutExercises,
+        instructions: exerciseLibrary.instructions,
+      })
       .from(workoutExercises)
+      .leftJoin(
+        exerciseLibrary,
+        eq(exerciseLibrary.id, workoutExercises.exerciseId),
+      )
       .where(eq(workoutExercises.workoutId, id))
       .orderBy(asc(workoutExercises.position))
       .all()
-      .map((e) => ({
+      .map(({ exercise: e, instructions }) => ({
         ...e,
+        instructions: instructions || "",
         sets: db
           .select()
           .from(workoutSets)

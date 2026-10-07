@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 test("protected routes, login, mobile autosave, recovery and logout", async ({
   page,
@@ -248,6 +248,9 @@ test("create exercise, create and edit plan, accessible editor", async ({
   await page.getByLabel("Übungsname").fill("Test Rudern");
   await page.getByLabel("Muskelgruppe").fill("Rücken");
   await page
+    .getByLabel("Kurzbeschreibung (optional)")
+    .fill("Sitze aufrecht und ziehe die Griffe kontrolliert zum Oberkörper.");
+  await page
     .getByRole("button", { name: "Übung anlegen", exact: true })
     .click();
   await page
@@ -264,6 +267,13 @@ test("create exercise, create and edit plan, accessible editor", async ({
     .getByRole("link", { name: "Bearbeiten" })
     .click();
   await expect(page.getByLabel("Start kg")).toHaveValue("42.5");
+  await page.locator(".assignment .exercise-guide summary").click();
+  await expect(
+    page.getByText(
+      "Sitze aufrecht und ziehe die Griffe kontrolliert zum Oberkörper.",
+      { exact: true },
+    ),
+  ).toBeVisible();
   await page.getByLabel("Planname").fill("Bearbeiteter Plan");
   await page.getByLabel("Start kg").fill("45");
   const audit = await new AxeBuilder({ page })

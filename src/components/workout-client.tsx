@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Workout } from "@/lib/workouts";
 import { RestTimer } from "./rest-timer";
 import { FinishWorkout } from "./finish-workout";
+import { ExerciseGuide } from "./exercise-guide";
 type Row = Workout["exercises"][number]["sets"][number];
 type Draft = {
   weight: string;
@@ -311,6 +312,10 @@ export function WorkoutClient({ initial }: { initial: Workout }) {
             </span>
           </div>
           <h2>{exercise.name}</h2>
+          <ExerciseGuide
+            name={exercise.name}
+            instructions={exercise.instructions}
+          />
           <p className="recommendation">↗ {exercise.recommendation}</p>
           <p className="previous">
             Letztes Training:{" "}
