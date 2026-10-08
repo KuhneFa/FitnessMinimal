@@ -178,3 +178,19 @@ Implementiert und vor Beginn der Beratung geprüft: Mahlzeiten per Text oder bes
 Der bestehende Abo-Transport wurde für strukturierte Antworten wiederverwendbar gemacht; Planantworten und ihre Fehlerschutzmechanismen bleiben regressionsgeprüft. Auch Ernährung unterstützt Kopier-/Importweg und sichtbare Originalantworten. Keine kostenpflichtige API und keine zusätzliche Abhängigkeit.
 
 Typecheck, ESLint, **66 Unit-/Integrationstests**, Production Build und **10 Chromium-End-to-End-Tests** bestanden. Die Erweiterung der Testsuite erforderte ein isoliertes Login-Budget pro Test in der temporären Datenbank; das produktive Login-Limit wurde nicht geändert. axe ohne Befunde und mobile Breiten 320/375/390/430 ohne Überlauf in der Tagebuchprüfung. Neue Modellantworten sind simuliert; keine echte Ernährungsanfrage oder echte Geräte-Spracherkennung getestet.
+
+## Phase 15 – Beratung mit Zusammenfassung und Rückfragen – abgeschlossen 08.10.2026
+
+Nach bestandener Phase 14 implementiert: eigene Beratungsseite mit freiwilligem Fokus, wählbarem Siebentageszeitraum und optionaler Trainingsanzahl/-dauer. Eine zunächst nur lokal vorbereitete, gespeicherte Zusammenfassung wird vor dem KI-Aufruf vollständig angezeigt. Sie enthält Tagesaggregate, unbekannte Kalorien, begrenzte Mahlzeitenausschnitte und Annahmen; keine Trainingsnotizen oder einzelnen Sätze. Fehlende Mahlzeiten/Tage bleiben unbekannt. Erst „Feedback anfordern“ oder das eigene Kopieren nach ChatGPT überträgt die Daten.
+
+Gültiges Feedback und Fragen werden dauerhaft als Gespräch gespeichert. Rückfragen verwenden dieselbe eingefrorene Grundlage und die bisherigen Frage-/Antwortpaare. Sechs Antworten pro Gespräch begrenzen den Kontext ohne stilles Abschneiden. Neue Einträge erfordern eine neue Beratung. Versionsprüfungen und Transaktionen verhindern das Überschreiben konkurrierender Antworten. Gespräche lassen sich mit ihren Antworten und der Zusammenfassung löschen; Tagebucheinträge bleiben davon unberührt. Die Oberfläche erklärt, dass ältere Zusammenfassungen Kopien enthalten und lokale Löschung keine Anbieter-Löschung ist.
+
+Abschlussprüfung:
+
+- Typecheck, ESLint, **70 Unit-/Integrationstests** und Production Build bestanden.
+- **11 Chromium-End-to-End-Tests bestanden**: Vorbereitung ohne Modellaufruf, vollständige Vorschau, persistentes Feedback, Rückfragen mit vorherigem Kontext, Neuladen, Versionskonflikt, Gesprächslöschung, Text statt HTML-Ausführung sowie bestehende Plan-/Workoutabläufe.
+- Tagebuch-Diktat zusätzlich im Browser mit simuliertem Sprachdienst geprüft: vorläufige Wörter bleiben beim Stoppen erhalten und werden vollständig in die Essensbeschreibung übernommen; kein Audio-Upload.
+- axe ohne Befunde auf den geprüften Screens, mobile Breiten 320/375/390/430 ohne horizontalen Überlauf. Tagebuch- und Beratungsscreenshots visuell geprüft. Das vorbefüllte Beratungsfragenfeld erhielt nach einem Browserbefund eine explizite Label-Zuordnung.
+- `git diff --check` bestanden. Keine neuen npm-Abhängigkeiten. Migrationen 0007/0008 am 08.10.2026 erfolgreich auf der lokalen Datenbank angewendet; bestehende Tabellen werden nicht gelöscht oder ersetzt.
+
+Keine echte Modellanfrage für Ernährung/Beratung ausgeführt, kein API-Key verwendet. Modellantworten und Diktat sind in den Tests simuliert. Reale Schätz-/Beratungsqualität und echte Mobilgeräte-Spracherkennung bleiben manuell zu prüfen; Details stehen im manuellen Testplan. Die Umsetzung nutzt die bestehende Abo-Verbindung bzw. den Kopier-/Importweg ohne kostenpflichtigen API-Fallback.

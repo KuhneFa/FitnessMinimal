@@ -17,7 +17,9 @@
     "db:generate": "drizzle-kit generate",
     "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
     "password:hash": "node --import tsx scripts/password.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage --test-coverage-include=src/** tests/*.test.ts",
+    "eval:nutrition": "node --env-file-if-exists=.env --import tsx scripts/evaluate-nutrition.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.0.0",

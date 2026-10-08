@@ -1,0 +1,172 @@
+[
+  {
+    "file": "tests/security.test.ts",
+    "contract": "passwords, sessions, login throttling and origin boundaries",
+    "scenarios": [
+      "password hashes are salted and reject wrong passwords",
+      "sessions expire, can be revoked and only hashes are stored",
+      "login limiting survives independent requests and resets after 15 minutes",
+      "origin must match configured origin exactly"
+    ]
+  },
+  {
+    "file": "tests/timer.test.ts",
+    "contract": "timer lifecycle across backgrounding, pause/resume and duration limits",
+    "scenarios": [
+      "timer uses elapsed wall clock through background and expiry",
+      "pause, add 30, resume and skip preserve duration",
+      "running add30 caps timer at 30 minutes"
+    ]
+  },
+  {
+    "file": "tests/validation.test.ts",
+    "contract": "HTTP and workout validation preserve incomplete drafts and reject invalid completion",
+    "scenarios": [
+      "JSON rejects oversized bodies, wrong content types, malformed and invalid values",
+      "drafts allow incomplete values but completed sets require reps and RIR",
+      "finish reviews and note length are constrained"
+    ]
+  },
+  {
+    "file": "tests/dictation.test.ts",
+    "contract": "dictation preserves interim tails, final corrections and complete long input",
+    "scenarios": [
+      "stopping retains the visible interim tail even when the final event omits it",
+      "final corrections replace interim results without duplicating earlier sentences",
+      "interim-only, empty final events and long dictations are never silently truncated"
+    ]
+  },
+  {
+    "file": "tests/persistence.test.ts",
+    "contract": "durability through abrupt restart and persistent-volume enforcement",
+    "scenarios": [
+      "committed SQLite WAL survives abrupt process termination",
+      "Railway refuses ephemeral database paths and missing volume"
+    ]
+  },
+  {
+    "file": "tests/database.test.ts",
+    "contract": "repeatable migrations, foreign keys and backward-compatible exercise guidance",
+    "scenarios": [
+      "migrations are repeatable and SQLite enforces foreign keys",
+      "exercise guidance migration preserves older library entries and initializes empty guidance"
+    ]
+  },
+  {
+    "file": "tests/progression.test.ts",
+    "contract": "double progression decision matrix, numeric boundaries and immutability",
+    "scenarios": [
+      "80 x 10 x 3 at target RIR recommends 82.5",
+      "first workout uses plan weight",
+      "empty previous workout uses plan weight",
+      "one set below rep ceiling prevents increase",
+      "insufficient RIR prevents increase",
+      "missing RIR prevents increase",
+      "unfinished sets prevent increase",
+      "changed set count prevents increase",
+      "mixed weights use first completed working load without increase",
+      "all unfinished uses plan weight",
+      "decimal increments avoid floating point artifacts",
+      "zero weight and RIR zero supported",
+      "above target reps still qualifies",
+      "upper supported load never exceeded",
+      "invalid parameters are rejected",
+      "input is never mutated"
+    ]
+  },
+  {
+    "file": "tests/chatgpt.test.ts",
+    "contract": "OAuth sign-in and identity/capability validation",
+    "scenarios": [
+      "sign-in uses PKCE, nonce, loopback callback and persistent client for reauthorization",
+      "callback rejects state mismatch, missing code, dynamic ID and substituted client",
+      "ID token verifies signature, issuer, audience, nonce and expiry before account storage",
+      "identity alone does not grant subscription inference"
+    ]
+  },
+  {
+    "file": "tests/chatgpt.test.ts",
+    "contract": "private credential storage, serialized refresh and lock recovery",
+    "scenarios": [
+      "subscription store is owner-only and refresh is serialized without touching API key",
+      "store lock recovers from rejected operations"
+    ]
+  },
+  {
+    "file": "tests/ai.test.ts",
+    "contract": "subscription transport, stream completeness, inspectable replies and provider failures",
+    "scenarios": [
+      "structured proposal sends only explicit profile and library names, never stores response",
+      "API key cannot replace missing subscription grant",
+      "incomplete outputs and refusals do not become plans",
+      "provider errors are redacted and timeouts are actionable",
+      "SSE requires terminal completion, supports chunk boundaries and stops on late limits",
+      "first-request errors distinguish app quota, temporary availability, eligibility and unknown 429 without retry",
+      "streamed text is retained if completed output is empty, without duplicating delta/done/item text",
+      "invalid, refused and empty outputs preserve public replies, not reasoning or provider credentials",
+      "incomplete or failed streams keep inspectable text but never return a plan even when its JSON is valid",
+      "oversized public replies are visibly truncated and rejected, never imported from their preview"
+    ]
+  },
+  {
+    "file": "tests/ai.test.ts",
+    "contract": "plan validation and parsing reject invalid prescriptions without guessing values",
+    "scenarios": [
+      "invalid or duplicated model exercises are rejected before any import",
+      "optional profile values may be absent but implausible values and long prompts are rejected",
+      "response parsing accepts harmless number formatting but never guesses or clamps values",
+      "response validation identifies duplicates, reversed ranges and missing fields without exposing values",
+      "JSON within prose/code fences is readable, but competing or truncated objects are never guessed",
+      "AI rules and schema reject 900 reps and excessive rest; the format example is a valid small prescription"
+    ]
+  },
+  {
+    "file": "tests/ai.test.ts",
+    "contract": "plan prompts support new exercises, legacy guidance and safe video discovery",
+    "scenarios": [
+      "manual ChatGPT prompt includes compact format, voluntary context and library without external call",
+      "empty libraries still allow new model exercises and older responses need no invented guidance",
+      "video search uses a fixed host and encodes exercise names without model-supplied URLs"
+    ]
+  },
+  {
+    "file": "tests/ai.test.ts",
+    "contract": "persistent AI budgets and accepted-only transactional plan import",
+    "scenarios": [
+      "AI budgets share sessions, survive requests and enforce both short and daily limits",
+      "only accepted exercises are imported; matching library entries are reused; retries do not duplicate"
+    ]
+  },
+  {
+    "file": "tests/nutrition.test.ts",
+    "contract": "meal persistence, concurrent edits, calendar dates and partial daily totals",
+    "scenarios": [
+      "diary retains meals, separates dates and rejects concurrent edits/deletes",
+      "dates and calorie totals distinguish unknown intake from actual zero"
+    ]
+  },
+  {
+    "file": "tests/nutrition.test.ts",
+    "contract": "nutrition response contract, uncertainty and subscription transport",
+    "scenarios": [
+      "nutrition imports validate ranges and uncertainty, reject incomplete and competing JSON",
+      "nutrition uses subscription transport, strict schema and public reply without saving"
+    ]
+  },
+  {
+    "file": "tests/advice.test.ts",
+    "contract": "advice summary boundaries, missing meals, bounded excerpts and optional training",
+    "scenarios": [
+      "advice summaries preserve unknown days, bound excerpts and sum every logged meal",
+      "optional training aggregate respects Berlin dates and excludes notes and unfinished sessions"
+    ]
+  },
+  {
+    "file": "tests/advice.test.ts",
+    "contract": "advice conversation persistence, follow-up context, conflicts and response validation",
+    "scenarios": [
+      "saved advice freezes the summary, carries follow-up context, detects conflicts and deletes all copies",
+      "advice responses reject missing/oversized output and the prompt treats logs as incomplete data"
+    ]
+  }
+]

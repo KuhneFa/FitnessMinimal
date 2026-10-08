@@ -1,6 +1,6 @@
 # Fitmin
 
-Mobile Trainings-App für eine Person. Next.js, TypeScript, Tailwind, SQLite und Drizzle. Persönliche Daten werden auf dem Server gespeichert. Kein Service Worker, kein API-Cache, keine lokale Historien-Datenbank.
+Mobile App für Training, Ernährungstagebuch und KI-Beratung für eine Person. Next.js, TypeScript, Tailwind, SQLite und Drizzle. Persönliche Daten werden auf dem Server gespeichert. Kein Service Worker, kein API-Cache, keine lokale Historien-Datenbank.
 
 ## Lokal starten
 
@@ -124,3 +124,13 @@ Unter **Tagebuch → Essen** lassen sich Mahlzeiten nach Datum und Mahlzeitentyp
 Eine KI-Schätzung enthält kcal für die gesamte Mahlzeit, eine Spanne und Portionsannahmen. Bei fehlenden Angaben kann die KI eine Rückfrage statt eines Zahlenwerts liefern. Vor dem Speichern lassen sich Annahmen prüfen und Angaben korrigieren. Änderungen an der Beschreibung setzen die vorherigen Kalorien zurück. Tageswerte sind Summen der erfassten Einträge; fehlende Kalorien zählen nicht als null und ein leeres Tagebuch ist keine Aussage über die tatsächliche Nahrungsaufnahme. Einträge können bearbeitet und gelöscht werden; konkurrierende Änderungen werden erkannt.
 
 Migration `0007_red_black_knight.sql` legt die separate Mahlzeitentabelle an. Vorhandene Trainingsdaten bleiben erhalten. Bei einem bereits laufenden Entwicklungsserver `npm run db:migrate` ausführen und den Server neu starten; der Produktionsstart führt Migrationen automatisch aus.
+
+### Beratung und Rückfragen
+
+Unter **Beratung** wird zunächst eine Zusammenfassung von sieben Tagen bis zum gewählten Datum vorbereitet und in Fitmin gespeichert. Ein freiwilliger Fokus kann ergänzt werden. Trainingsanzahl und -dauer lassen sich abwählen. Die Vorschau zeigt exakt die Gesprächsgrundlage: Tageswerte aus den Einträgen, fehlende Kalorien, kurze Mahlzeitenausschnitte und Portionsannahmen. Je Tag werden höchstens acht Beschreibungen angehängt; Tageswerte berücksichtigen trotzdem alle erfassten Einträge. Es werden keine einzelnen Trainingssätze oder Trainingsnotizen übertragen.
+
+Erst **Feedback anfordern** sendet diese Grundlage und die Frage über die bestehende ChatGPT-Verbindung. Kopieren und Importieren ist ebenfalls möglich. Fragen und gültige Antworten werden in Fitmin gespeichert. Bis zu sechs Antworten pro Gespräch erlauben Rückfragen mit derselben Zusammenfassung und dem bisherigen Gespräch; es wird nichts still aus dem Gespräch entfernt. Neue Tagebucheinträge erfordern eine neue Beratung. Gespräche sind wieder aufrufbar und samt Zusammenfassung löschbar. Bereits erstellte Zusammenfassungen sind eigenständige Kopien: Eine spätere Änderung oder Löschung einer Mahlzeit ändert sie nicht rückwirkend. Löschen in Fitmin löscht keine Inhalte beim Anbieter.
+
+Die Beratung dient allgemeinen Alltagstipps, nicht medizinischen Behandlungsplänen. Fehlende Einträge und geschätzte Kalorien sind keine Grundlage für eine sichere Aussage zu Tagesbedarf, Energiebilanz oder Makronährstoffen. Die Regeln untersagen solche erfundenen Schlussfolgerungen; die tatsächliche Modellqualität muss weiterhin geprüft werden.
+
+Migration `0008_wide_magma.sql` ergänzt Gespräche und Antworten. Planvorschläge, Kalorienschätzungen und Beratung teilen sich das bestehende lokale KI-Budget von 5 direkten Anfragen je 15 Minuten und 30 je 24 Stunden. Keine automatischen Wiederholungen, kein API-Key-Fallback. Die strukturierten Antwortformate und lokale Validierung orientieren sich an der [OpenAI-Dokumentation zu Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs); ein gültiges Format garantiert keine sachlich richtigen Ernährungsangaben.

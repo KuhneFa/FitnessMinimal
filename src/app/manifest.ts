@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "Fitmin",
     short_name: "Fitmin",
-    description: "Dein Training. Dein Fortschritt.",
+    description: "Dein Training. Dein Essen. Dein Tagebuch.",
     start_url: "/",
     scope: "/",
     display: "standalone",

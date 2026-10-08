@@ -2,7 +2,10 @@ import { z } from "zod";
 import { dateSchema } from "./nutrition-contract";
 export const adviceSetupSchema = z.object({
   id: z.string().uuid(),
-  endDate: dateSchema,
+  endDate: dateSchema.refine(
+    (date) => date >= "2000-01-07",
+    "Bitte ein Datum ab dem 07.01.2000 wählen.",
+  ),
   focus: z.string().trim().max(600),
   includeTraining: z.boolean(),
 });

@@ -48,6 +48,10 @@ export const estimateSchema = estimateFields
   .refine(
     (v) => v.calories === null || !!v.assumptions,
     "Die Schätzung muss ihre Portionsannahmen nennen.",
+  )
+  .refine(
+    (v) => !v.clarification || v.calories === null,
+    "Bei einer offenen Rückfrage müssen die Kalorien noch offen bleiben.",
   );
 export const mealSchema = estimateFields
   .extend({

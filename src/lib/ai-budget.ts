@@ -28,7 +28,7 @@ export function consumeAiBudget(
         if (row && row.reset > now && row.count >= limit.max)
           throw new HttpError(
             429,
-            "KI-Limit erreicht. Bitte später erneut versuchen; manuell kannst du weiterplanen.",
+            "KI-Limit erreicht. Bitte später erneut versuchen; manuell kannst du weiterarbeiten.",
           );
         return {
           key: limit.key,

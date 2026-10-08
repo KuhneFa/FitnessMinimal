@@ -126,15 +126,14 @@ export function AdviceConversation({ initial }: { initial: AdviceThread }) {
                 )
               }
             />
-            <label>
-              Deine Frage
-              <textarea
-                rows={4}
-                value={question}
-                disabled={busy || voiceBusy || deleting}
-                onChange={(e) => setQuestion(e.target.value)}
-              />
-            </label>
+            <label htmlFor="advice-question">Deine Frage</label>
+            <textarea
+              id="advice-question"
+              rows={4}
+              value={question}
+              disabled={busy || voiceBusy || deleting}
+              onChange={(e) => setQuestion(e.target.value)}
+            />
             {question.length > 2000 && (
               <p role="alert" className="error">
                 Dein vollständiger Text ist erhalten. Bitte die Frage auf
