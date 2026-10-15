@@ -25,22 +25,9 @@ export async function readJson<T>(
 ): Promise<T> {
   if (!request.headers.get("content-type")?.includes("application/json"))
     throw new HttpError(415, "JSON erwartet.");
-  const reader = request.body?.getReader();
-  if (!reader) throw new HttpError(400, "Daten fehlen.");
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    length += value.length;
-    if (length > maxBytes) {
-      await reader.cancel();
-      throw new HttpError(413, "Anfrage zu groß.");
-    }
-    chunks.push(value);
-  }
+  const body = await readBody(request, maxBytes);
   try {
-    return schema.parse(JSON.parse(Buffer.concat(chunks).toString()));
+    return schema.parse(JSON.parse(body.toString()));
   } catch {
     throw new HttpError(400, "Bitte Eingaben prüfen.");
   }
@@ -62,4 +49,26 @@ export function json(data: unknown, status = 200) {
     status,
     headers: { "Cache-Control": "no-store" },
   });
+}
+
+// Count actual streamed bytes, including native HTML form submissions.
+export async function readBody(
+  request: Request,
+  maxBytes: number,
+): Promise<Buffer> {
+  const reader = request.body?.getReader();
+  if (!reader) throw new HttpError(400, "Daten fehlen.");
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    length += value.length;
+    if (length > maxBytes) {
+      await reader.cancel();
+      throw new HttpError(413, "Anfrage zu groß.");
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks);
 }

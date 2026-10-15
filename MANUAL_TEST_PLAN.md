@@ -500,3 +500,15 @@ Automatisiert geprüft werden Mahlzeitenerfassung, Speicherung/Neuladen, Kalorie
 - Beratung vorbereiten, Zeitraum/Fokus/optionalen Trainingsbezug prüfen. Es darf vorher kein Modellaufruf stattfinden. Vorschau mit den tatsächlich erfassten Einträgen vergleichen; gekürzte und ausgelassene Beschreibungen sowie unbekannte Mahlzeiten sind kenntlich. Dann Feedback anfordern oder Kopier-/Importweg verwenden.
 - Rückfrage stellen, neu laden und Gespräch erneut öffnen. Neue Mahlzeiten dürfen die bestehende Gesprächsgrundlage nicht verändern. Für aktuelle Einträge eine neue Beratung vorbereiten. Nach sechs Antworten muss ein neues Gespräch erforderlich sein. Gespräch löschen: Zusammenfassung/Antworten verschwinden, Tagebuch bleibt bestehen.
 - Allgemeines Feedback bei unvollständigem Tagebuch, medizinischem Anliegen oder Gewichtsreduktionswunsch kritisch prüfen: keine erfundenen Makros, Mangelzustände, Sportkalorien, Energiebilanz oder restriktiven Pläne. **Tatsächliche Modellqualität noch nicht manuell geprüft.**
+
+## Phase 16 – Zusammengefasste Tests und echte Ernährungsproben (08.10.2026)
+
+Die Standardsuite umfasst jetzt 30 Tests (19 Unit-/Integrationstests, 11 Browserfälle) bei vollständig erhaltenen bisherigen Szenarien. Siehe `docs/testing/README.md` für die Abdeckung und Zuordnung.
+
+Fünf echte synthetische Ernährungsanfragen über das vorhandene ChatGPT-Abo wurden geprüft: roh/gegart-Rückfrage, Packungswerte-Rechnung, unvollständiges Tagebuch vor/nach Promptpräzisierung und eine Folgefrage ohne Büroküche. Öffentliche Originalantworten und Bewertung liegen unter `docs/evals/`. Damit ist die frühere Einschränkung „keine echte Ernährungsanfrage“ für diese konkreten Proben überholt. Echte Geräte-Spracherkennung und eine umfassende ernährungsfachliche Qualitätsprüfung bleiben offen. Zusätzliche Proben sind ausschließlich ausdrücklich per `npm run eval:nutrition` auszuführen, nicht automatisch in der Testsuite.
+
+## Phase 17 – Anmeldung ohne Passwort in der URL (15.10.2026)
+
+Automatisch im bestehenden Browserfall geprüft: mit vollständig deaktiviertem JavaScript falsches Passwort absenden, Fehler ohne Passwort in der URL anzeigen, anschließend korrekt anmelden und Session-Cookie erhalten. Beide Formularanfragen sind POST ohne Query. Alte Passwort-URLs werden bereinigt. GET auf `/api/auth/login` bleibt 405 ohne Session, eine fremde LAN-Origin wird auch beim nativen Formular abgewiesen. Bodygrenzen, Sonderzeichen, doppelte Passwortfelder und feste Fehlercodes sind in den bestehenden Unit-Gruppen geprüft. Testzahl weiterhin 30.
+
+Die tatsächlich vom Nutzer genannte lokale Netzwerkadresse wurde mit einem erfundenen falschen Testpasswort geprüft: Formular method=post, keine Passwort-Query; sichtbare Origin-Fehlermeldung wegen aktueller localhost-Konfiguration. Für einen später freigegebenen Netzwerk-/HTTPS-Betrieb auf dem echten Zielgerät zusätzlich Cookie-/Proxy-Konfiguration prüfen. Ein zuvor in einer URL übertragenes echtes Passwort ersetzen; lokale Bereinigung löscht keine vorhandenen Logs oder Verlaufseinträge.

@@ -4,6 +4,7 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
   page,
   context,
   request,
+  browser,
 }) => {
   test.setTimeout(60000);
   const anonymous = await request.get("/api/plans");
@@ -13,6 +14,66 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
     data: { password: "test-password-123" },
   });
   expect(badOrigin.status()).toBe(403);
+
+  // Native HTML login must work before hydration and with JavaScript disabled.
+  const nativeContext = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const nativePage = await nativeContext.newPage();
+    const submitted: { method: string; url: string }[] = [];
+    nativePage.on("request", (req) => {
+      if (new URL(req.url()).pathname === "/api/auth/login")
+        submitted.push({ method: req.method(), url: req.url() });
+    });
+    await nativePage.goto(
+      "http://localhost:3100/login?password=old-diagnostic-value",
+    );
+    await expect(nativePage).toHaveURL(
+      "http://localhost:3100/login?error=unsafe-url",
+    );
+    await expect(nativePage.getByRole("alert")).toContainText("bereinigt");
+    await expect(nativePage.locator("form")).toHaveAttribute("method", "post");
+    await expect(nativePage.locator("form")).toHaveAttribute(
+      "action",
+      "/api/auth/login",
+    );
+    await nativePage.getByLabel("Dein Passwort").fill("wrong-native-password");
+    await nativePage.getByRole("button", { name: "Anmelden →" }).click();
+    await expect(nativePage).toHaveURL(
+      "http://localhost:3100/login?error=invalid",
+    );
+    await expect(nativePage.getByRole("alert")).toHaveText(
+      "Passwort ist nicht korrekt.",
+    );
+    await expect(nativePage.getByLabel("Dein Passwort")).toHaveValue("");
+    await nativePage.getByLabel("Dein Passwort").fill("test-password-123");
+    await nativePage.getByRole("button", { name: "Anmelden →" }).click();
+    await expect(nativePage).toHaveURL("http://localhost:3100/");
+    expect(submitted.length).toBe(2);
+    expect(
+      submitted.every(
+        (req) => req.method === "POST" && !new URL(req.url).search,
+      ),
+    ).toBe(true);
+    expect(
+      (await nativeContext.cookies()).find((c) => c.name === "fittrack_session")
+        ?.httpOnly,
+    ).toBe(true);
+  } finally {
+    await nativeContext.close();
+  }
+  const deniedForm = await request.post("/api/auth/login", {
+    headers: { origin: "http://192.168.2.101:3100" },
+    form: { password: "test-password-123" },
+    maxRedirects: 0,
+  });
+  expect(deniedForm.status()).toBe(303);
+  expect(deniedForm.headers().location).toBe("/login?error=origin");
+  expect(deniedForm.headers()["set-cookie"]).toBeUndefined();
+  const getLogin = await request.get(
+    "/api/auth/login?password=test-password-123",
+  );
+  expect(getLogin.status()).toBe(405);
+  expect(getLogin.headers()["set-cookie"]).toBeUndefined();
   await page.goto("/plans");
   await expect(page).toHaveURL(/login/);
   await page.getByLabel("Dein Passwort").fill("wrong");

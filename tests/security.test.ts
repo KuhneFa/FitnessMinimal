@@ -4,6 +4,7 @@ import { openDatabase } from "../src/db";
 import {
   hashPassword,
   verifyPassword,
+  isPasswordHash,
   createSession,
   validSession,
   digest,
@@ -23,6 +24,19 @@ test("passwords, sessions, login throttling and origin boundaries", () =>
         assert.equal(verifyPassword("wrong", hash), false);
         assert.notEqual(hash, hashPassword("my long test password"));
         assert.equal(verifyPassword("abc", "bad"), false);
+        assert.equal(isPasswordHash(hash), true);
+        for (const malformed of [
+          hash.slice(1),
+          hash + ":extra",
+          "PASSWORD_HASH=" + hash,
+          hash.toUpperCase(),
+        ]) {
+          assert.equal(isPasswordHash(malformed), false);
+          assert.equal(
+            verifyPassword("my long test password", malformed),
+            false,
+          );
+        }
       },
     },
     {

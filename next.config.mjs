@@ -8,7 +8,7 @@ const config = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "Referrer-Policy", value: "strict-origin" },
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(self), geolocation=()",

@@ -11,7 +11,11 @@ export function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
+export function isPasswordHash(encoded: string) {
+  return /^[a-f0-9]{32}:[a-f0-9]{128}$/.test(encoded);
+}
 export function verifyPassword(password: string, encoded: string) {
+  if (!isPasswordHash(encoded)) return false;
   const [salt, hex] = encoded.split(":");
   if (!salt || !hex || !/^[a-f0-9]{128}$/.test(hex)) return false;
   const actual = scryptSync(password, salt, 64);

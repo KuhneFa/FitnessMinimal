@@ -22,6 +22,7 @@
     "file": "tests/validation.test.ts",
     "contract": "HTTP and workout validation preserve incomplete drafts and reject invalid completion",
     "scenarios": [
+      "native and JSON login bodies are bounded, reject ambiguous credentials and never echo passwords",
       "JSON rejects oversized bodies, wrong content types, malformed and invalid values",
       "drafts allow incomplete values but completed sets require reps and RIR",
       "finish reviews and note length are constrained"
@@ -150,7 +151,8 @@
     "contract": "nutrition response contract, uncertainty and subscription transport",
     "scenarios": [
       "nutrition imports validate ranges and uncertainty, reject incomplete and competing JSON",
-      "nutrition uses subscription transport, strict schema and public reply without saving"
+      "nutrition uses subscription transport, strict schema and public reply without saving",
+      "real nutrition replies survive import and persistence; unresolved portions never carry saveable calories"
     ]
   },
   {
@@ -166,7 +168,22 @@
     "contract": "advice conversation persistence, follow-up context, conflicts and response validation",
     "scenarios": [
       "saved advice freezes the summary, carries follow-up context, detects conflicts and deletes all copies",
-      "advice responses reject missing/oversized output and the prompt treats logs as incomplete data"
+      "advice responses reject missing/oversized output and the prompt treats logs as incomplete data",
+      "real advice replies round-trip through persistence and retain dietary constraints in follow-up context"
+    ]
+  },
+  {
+    "file": "tests/plans.test.ts",
+    "contract": "plan editing replaces assignments atomically; invalid foreign keys roll back",
+    "scenarios": [
+      "plan editing replaces assignments atomically; invalid foreign keys roll back"
+    ]
+  },
+  {
+    "file": "tests/workouts.test.ts",
+    "contract": "workout snapshots, autosave, retry, conflicts and restart persistence",
+    "scenarios": [
+      "workout snapshots, autosave, retry, conflicts and restart persistence"
     ]
   }
 ]

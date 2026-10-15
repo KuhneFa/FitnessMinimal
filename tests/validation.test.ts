@@ -4,10 +4,87 @@ import { z } from "zod";
 import { readJson } from "../src/lib/http";
 import { setSchema, finishSchema } from "../src/lib/workouts";
 import { randomUUID } from "node:crypto";
+import {
+  readLoginInput,
+  loginErrorMessage,
+  loginRedirect,
+} from "../src/lib/login";
 import { scenarios } from "./helpers/scenarios";
 
 test("HTTP and workout validation preserve incomplete drafts and reject invalid completion", () =>
   scenarios([
+    {
+      name: "native and JSON login bodies are bounded, reject ambiguous credentials and never echo passwords",
+      run: async () => {
+        const password = "Sicher + & = ä 🙂 Passwort";
+        for (const type of [
+          "application/json",
+          "application/x-www-form-urlencoded; charset=UTF-8",
+        ]) {
+          const body = type.startsWith("application/json")
+            ? JSON.stringify({ password })
+            : new URLSearchParams({ password }).toString();
+          assert.deepEqual(
+            await readLoginInput(
+              new Request("http://localhost/api/auth/login", {
+                method: "POST",
+                headers: { "content-type": type },
+                body,
+              }),
+            ),
+            { password },
+          );
+        }
+        for (const body of [
+          "",
+          "password=",
+          "password=one&password=two",
+          "password=one&next=https://evil.example",
+          "password=" + "x".repeat(300),
+          "password=" + "x".repeat(5000),
+        ]) {
+          await assert.rejects(
+            readLoginInput(
+              new Request("http://localhost/api/auth/login?password=ignored", {
+                method: "POST",
+                headers: {
+                  "content-type": "application/x-www-form-urlencoded",
+                },
+                body,
+              }),
+            ),
+          );
+        }
+        await assert.rejects(
+          readLoginInput(
+            new Request("http://localhost/api/auth/login", {
+              method: "POST",
+              headers: { "content-type": "text/plain" },
+              body: password,
+            }),
+          ),
+        );
+        for (const code of [
+          "__proto__",
+          "constructor",
+          "<script>alert(1)</script>",
+          ["invalid"],
+          undefined,
+        ])
+          assert.equal(loginErrorMessage(code), "");
+        assert.equal(
+          loginErrorMessage("invalid"),
+          "Passwort ist nicht korrekt.",
+        );
+        assert.equal(loginRedirect().headers.get("location"), "/");
+        assert.equal(
+          loginRedirect("invalid").headers.get("location"),
+          "/login?error=invalid",
+        );
+        assert.equal(loginRedirect("invalid").status, 303);
+        assert.equal(await loginRedirect("invalid").text(), "");
+      },
+    },
     {
       name: "JSON rejects oversized bodies, wrong content types, malformed and invalid values",
       run: async () => {

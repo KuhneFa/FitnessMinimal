@@ -18,6 +18,14 @@ Optional **vor dem ersten Plan** `npm run db:seed` ausführen. Der lokale Seed e
 
 Double Progression verwendet das letzte abgeschlossene Training derselben Übung, auch über verschiedene Trainingstage hinweg. Alle geplanten Sätze müssen bei identischem Gewicht mindestens die obere Wiederholungsgrenze und das Ziel-RIR erreichen. Dann wird der konfigurierte Gewichtsschritt addiert. Sonst bleibt das Gewicht des ersten abgeschlossenen Satzes erhalten; ohne Historie gilt das Startgewicht im Plan. Änderungen an Planwerten verändern keine laufenden oder historischen Workout-Snapshots.
 
+### Anmeldung und Netzwerkadresse
+
+Das Anmeldeformular sendet ausschließlich per POST an `/api/auth/login`: mit JavaScript als JSON, ohne JavaScript als begrenztes HTML-Formular. Native Anfragen erhalten eine 303-Weiterleitung zur Startseite oder zurück zum Login mit einem festen Fehlercode, niemals mit Passwort. GET auf der Login-API ist nicht erlaubt. Alte `/login?password=…`-Links werden bereinigt; bereits vorhandene Browserhistorien oder Server-/Proxylogs werden dadurch nicht gelöscht. Ein so übertragenes Passwort ersetzen und den alten Verlaufseintrag entfernen.
+
+`APP_ORIGIN` ist die exakt erlaubte Adresse einschließlich Schema und Port, ohne Pfad oder abschließenden Schrägstrich. Mit `APP_ORIGIN=http://localhost:3000` auf dem Mac auch `http://localhost:3000` verwenden. Der Aufruf über eine LAN-IP ist ein anderer Ursprung und wird nicht automatisch freigegeben. Für einen ausdrücklich gewünschten Zugriff über eine andere Adresse muss die Konfiguration dazu passen; produktiv HTTPS verwenden. POST allein verschlüsselt HTTP nicht. Keine pauschale Freigabe beliebiger Origins oder Vertrauensentscheidung anhand eines vom Client gesendeten Host-Headers.
+
+Die vorhandene direkte ChatGPT-Anmeldung benötigt weiterhin einen lokalen Loopback-Ursprung. Für eine über das Netzwerk/HTTPS bereitgestellte Instanz den Kopier-/Importweg nutzen. Passwörter bleiben als gesalzene scrypt-Hashes in der Serverkonfiguration; Sessions liegen bereits gehasht in SQLite. Eine Verlagerung des Passwort-Hashs nach SQLite ist zur Behebung des Übertragungsfehlers nicht erforderlich. Ein beschädigter Hash wird jetzt ausdrücklich als Konfigurationsfehler gemeldet.
+
 ## Plan mit ChatGPT-Abo erstellen – ohne API-Abrechnung
 
 Fitmin verwendet **keinen OpenAI-API-Key mehr**, auch wenn noch `OPENAI_API_KEY` in deiner `.env` steht. Es gibt keinen automatischen Wechsel zu einer kostenpflichtigen API. Die bisherige Audio-Upload-Route ist gesperrt, auch für alte geöffnete Tabs. Nach Aktualisierung den Entwicklungsserver neu starten und den Planeditor neu laden.
@@ -82,7 +90,7 @@ Rohtext, Profil und abgelehnte Vorschläge werden in Fitmin nicht dauerhaft gesp
 
 ## Prüfungen
 
-`npm run check` führt Typecheck, ESLint, automatisierte Tests und Production Build in dieser Reihenfolge aus. Migrationen liegen versioniert unter `drizzle/`; neue Änderungen mit `npm run db:generate` erzeugen. Niemals eine angewandte Migration ändern.
+`npm run check` führt Typecheck, ESLint, automatisierte Tests und Production Build in dieser Reihenfolge aus. Die Standardsuite umfasst **30 Tests insgesamt: 19 Unit-/Integrationstests und 11 Chromium-Browsertests**. Verwandte Szenarien werden innerhalb eines Tests gemeinsam geprüft; keine bisherigen Prüfungen wurden entfernt. `npm run test:coverage` misst die Unit-Abdeckung. Zuordnung und Vorher-/Nachher-Werte: [Testkonzept](docs/testing/README.md). Migrationen liegen versioniert unter `drizzle/`; neue Änderungen mit `npm run db:generate` erzeugen. Niemals eine angewandte Migration ändern.
 
 Browserprüfung nach dem Build: `npx playwright install chromium`, dann `npm run test:e2e`. Die Tests verwenden eine automatisch erzeugte temporäre Datenbank mit Demo-Plan; echte lokale Daten werden nicht verwendet. Enthalten sind Login/Logout, Zugriffsschutz, Offline-Recovery, verlorene Speicherantwort, Timer, Abschluss, Progression, Planeditor und axe-Accessibility-Prüfung. WebKit optional auf kompatiblem Host: `npx playwright install webkit` und `TEST_WEBKIT=1 npm run test:e2e`.
 
@@ -134,3 +142,12 @@ Erst **Feedback anfordern** sendet diese Grundlage und die Frage über die beste
 Die Beratung dient allgemeinen Alltagstipps, nicht medizinischen Behandlungsplänen. Fehlende Einträge und geschätzte Kalorien sind keine Grundlage für eine sichere Aussage zu Tagesbedarf, Energiebilanz oder Makronährstoffen. Die Regeln untersagen solche erfundenen Schlussfolgerungen; die tatsächliche Modellqualität muss weiterhin geprüft werden.
 
 Migration `0008_wide_magma.sql` ergänzt Gespräche und Antworten. Planvorschläge, Kalorienschätzungen und Beratung teilen sich das bestehende lokale KI-Budget von 5 direkten Anfragen je 15 Minuten und 30 je 24 Stunden. Keine automatischen Wiederholungen, kein API-Key-Fallback. Die strukturierten Antwortformate und lokale Validierung orientieren sich an der [OpenAI-Dokumentation zu Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs); ein gültiges Format garantiert keine sachlich richtigen Ernährungsangaben.
+
+
+### Ernährungsantworten gezielt prüfen
+
+Fünf echte Anfragen mit erfundenen Angaben wurden über die vorhandene ChatGPT-Abo-Verbindung geprüft: Reis mit unklarer Zubereitung, Rechnung anhand Packungswerten, unvollständiges Tagebuch vor/nach Promptverbesserung und eine Rückfrage ohne Büroküche. Bericht und unveränderte Antworten: [Ernährungsprüfung](docs/evals/README.md). Normale Tests verwenden gespeicherte Antworten und simulierte Anbieter, keine echte Modellnutzung.
+
+Einzelne weitere Proben sind ausdrücklich über `npm run eval:nutrition -- <case> <neue-ausgabedatei.json> [vorherige-beratungsantwort.json]` möglich. Fälle stehen in `tests/fixtures/nutrition-evaluation.ts`. Der Befehl verwendet ausschließlich die bestehende Abo-Verbindung und das gemeinsame lokale Anfragebudget. Er sendet keine persönlichen Tagebucheinträge, wiederholt fehlgeschlagene Anfragen nicht automatisch und überschreibt keine vorhandene Ausgabedatei. Die Ergebnisse enthalten nur synthetische Eingaben, verwendeten Prompt, Modellname und öffentliche Antwort.
+
+Packungswerte, gegessener Rezeptanteil und eindeutige Korrekturen haben in der Schätzung Vorrang. Eine noch offene KI-Rückfrage darf nicht gleichzeitig fertige Kalorienwerte enthalten; solche widersprüchlichen Antworten werden mit sichtbarer Originalantwort abgelehnt.

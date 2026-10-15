@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-export function LoginForm() {
+export function LoginForm({ initialError = "" }: { initialError?: string }) {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [busy, setBusy] = useState(false);
   return (
     <form
+      method="post"
+      action="/api/auth/login"
       className="stack"
       onSubmit={async (e) => {
         e.preventDefault();
