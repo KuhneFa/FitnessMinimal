@@ -2,9 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { openDatabase } from "../src/db";
 import { scenarios } from "./helpers/scenarios";
+import { conversationPersistenceScenarios } from "./helpers/conversations";
 
 test("repeatable migrations, foreign keys and backward-compatible exercise guidance", () =>
   scenarios([
+    {
+      name: "conversations atomically persist, deduplicate, recover leases and survive backup/restore",
+      run: conversationPersistenceScenarios,
+    },
     {
       name: "migrations are repeatable and SQLite enforces foreign keys",
       run: () => {

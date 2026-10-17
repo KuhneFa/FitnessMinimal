@@ -1,11 +1,5 @@
 import { getDatabase } from "@/db";
-import {
-  authorize,
-  readJson,
-  json,
-  errorResponse,
-  HttpError,
-} from "@/lib/http";
+import { authorize, readJson, json } from "@/lib/http";
 import { estimateRequestSchema } from "@/lib/nutrition-contract";
 import {
   mealRequest,
@@ -13,11 +7,8 @@ import {
   mealExample,
 } from "@/lib/nutrition-prompt";
 import { consumeAiBudget } from "@/lib/ai-budget";
-import {
-  requestStructuredWithChatGpt,
-  PlanGenerationError,
-} from "@/lib/openai";
-import { activeChatGptAccount } from "@/lib/chatgpt-oauth";
+import { PlanGenerationError } from "@/lib/openai";
+import { requestStructured, aiErrorResponse } from "@/lib/ai-provider";
 import { modelReply } from "@/lib/plan-response";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
@@ -39,14 +30,12 @@ export async function POST(request: Request) {
         );
       }
     }
-    const account = await activeChatGptAccount();
-    if (!account.model)
-      throw new HttpError(409, "Bitte ein ChatGPT-Modell auswählen.");
-    consumeAiBudget(getDatabase().sqlite, "plan");
-    return json(await requestStructuredWithChatGpt(spec, account));
+    return json(
+      await requestStructured(spec, () =>
+        consumeAiBudget(getDatabase().sqlite, "plan"),
+      ),
+    );
   } catch (e) {
-    if (e instanceof PlanGenerationError)
-      return json({ error: e.message, reply: e.reply }, e.status);
-    return errorResponse(e);
+    return aiErrorResponse(e);
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { hasDeviceDrafts, revokeDevice } from "@/lib/device-storage";
 export function LoginForm({ initialError = "" }: { initialError?: string }) {
   const router = useRouter();
   const [error, setError] = useState(initialError);
@@ -66,8 +67,12 @@ export function LogoutButton() {
           try {
             let recovery = false;
             try {
-              recovery = !!localStorage.getItem("fittrack-recovery");
-            } catch {}
+              recovery =
+                (await hasDeviceDrafts()) ||
+                !!localStorage.getItem("fittrack-recovery");
+            } catch {
+              recovery = true;
+            }
             if (
               recovery &&
               !window.confirm(
@@ -77,13 +82,13 @@ export function LogoutButton() {
               return;
             const res = await fetch("/api/auth/logout", { method: "POST" });
             if (!res.ok && res.status !== 401) throw new Error();
-            try {
-              localStorage.removeItem("fittrack-recovery");
-            } catch {}
+            await revokeDevice();
             router.replace("/login");
             router.refresh();
           } catch {
-            setError("Abmelden fehlgeschlagen. Erneut versuchen.");
+            setError(
+              "Abmelden oder Löschen der lokalen Daten fehlgeschlagen. Bitte erneut versuchen; falls nötig die Website-Daten im Browser löschen.",
+            );
           }
         }}
       >

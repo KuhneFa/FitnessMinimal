@@ -1,12 +1,18 @@
 import { test, expect } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
+import {
+  deviceState,
+  verifyDeviceEdgeCases,
+  verifyBrowserRestart,
+} from "./device-storage";
 test("protected routes, login, mobile autosave, recovery and logout", async ({
-  page,
+  page: firstPage,
   context,
   request,
   browser,
 }) => {
-  test.setTimeout(60000);
+  test.setTimeout(120000);
+  let page = firstPage;
   const anonymous = await request.get("/api/plans");
   expect(anonymous.status()).toBe(401);
   const badOrigin = await request.post("/api/auth/login", {
@@ -108,15 +114,15 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
   await expect(
     page.getByRole("heading", { name: "Upper A", exact: true }),
   ).toBeVisible();
-  const weight = page.getByRole("textbox", {
+  let weight = page.getByRole("textbox", {
     name: "Bench Press, Satz 1, Gewicht in kg",
     exact: true,
   });
-  const reps = page.getByRole("textbox", {
+  let reps = page.getByRole("textbox", {
     name: "Bench Press, Satz 1, Wiederholungen",
     exact: true,
   });
-  const rir = page.getByRole("textbox", {
+  let rir = page.getByRole("textbox", {
     name: "Bench Press, Satz 1, RIR",
     exact: true,
   });
@@ -153,6 +159,7 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
   expect(
     await page.evaluate(() => localStorage.getItem("fittrack-recovery")),
   ).toBeNull();
+  expect((await deviceState(page)).drafts).toEqual([]);
   await page.reload();
   await expect(reps).toHaveValue("10");
   await expect(
@@ -161,14 +168,57 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
+  const workoutUrl = page.url();
+  const workoutId = workoutUrl.split("/").pop()!;
+  await expect(page.getByTestId("offline-availability")).toContainText(
+    "Offline-Start vorbereitet",
+  );
   await context.setOffline(true);
   await weight.fill("82,5");
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem("fittrack-recovery")))
-    .not.toBeNull();
+    .poll(async () => (await deviceState(page)).drafts[0]?.draft.weight)
+    .toBe("82,5");
   await expect(page.locator(".save-status")).toHaveText(
     "Noch nicht synchronisiert",
   );
+  // Close the page entirely, then boot a fresh page with no network. Only the
+  // public shell and IndexedDB may supply content; private HTML is never cached.
+  await page.close();
+  page = await context.newPage();
+  await page.goto(workoutUrl);
+  weight = page.getByRole("textbox", {
+    name: "Bench Press, Satz 1, Gewicht in kg",
+    exact: true,
+  });
+  reps = page.getByRole("textbox", {
+    name: "Bench Press, Satz 1, Wiederholungen",
+    exact: true,
+  });
+  rir = page.getByRole("textbox", {
+    name: "Bench Press, Satz 1, RIR",
+    exact: true,
+  });
+  await expect(
+    page.getByText("Gespeicherter Stand auf diesem Gerät", { exact: true }),
+  ).toBeVisible();
+  await expect(weight).toHaveValue("82,5");
+  const cached = await page.evaluate(async () => {
+    const paths: string[] = [];
+    for (const name of await caches.keys()) {
+      for (const req of await (await caches.open(name)).keys())
+        paths.push(new URL(req.url).pathname);
+    }
+    return paths;
+  });
+  expect(cached).toContain("/offline");
+  expect(
+    cached.every(
+      (path) =>
+        path === "/offline" ||
+        path.startsWith("/_next/static/") ||
+        /^\/icon-\d+\.png$/.test(path),
+    ),
+  ).toBe(true);
   await context.setOffline(false);
   await expect(page.locator(".save-status")).toHaveText(
     "Alle Änderungen gespeichert",
@@ -194,7 +244,6 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
     await page.evaluate(() => localStorage.getItem("fittrack-recovery")),
   ).toBeNull();
   // Commit on the server but lose the response; retry must remain idempotent.
-  const workoutId = page.url().split("/").pop()!;
   const before = await (
     await page.request.get(`/api/workouts/${workoutId}`)
   ).json();
@@ -220,6 +269,8 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
   expect(after.exercises[0].sets[0].version).toBe(
     before.exercises[0].sets[0].version + 1,
   );
+  await verifyDeviceEdgeCases(page, context, workoutId);
+  await verifyBrowserRestart(page, context, workoutId);
   for (const width of [320, 375, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
     expect(
@@ -272,6 +323,8 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Workout beenden ✓" }).click();
   await expect(page).toHaveURL(/history\//);
+  expect((await deviceState(page)).snapshot).toBeNull();
+  expect((await deviceState(page)).drafts).toEqual([]);
   await expect(page.getByText("Testtraining", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Verlauf ↗" }).first().click();
   await expect(page.getByText("80 kg × 10 · RIR 2")).toHaveCount(3);
@@ -286,8 +339,25 @@ test("protected routes, login, mobile autosave, recovery and logout", async ({
       exact: true,
     }),
   ).toHaveValue("82.5");
+  const staleTab = await context.newPage();
+  await staleTab.goto(page.url());
+  await expect(
+    staleTab.getByRole("textbox", {
+      name: "Bench Press, Satz 1, Gewicht in kg",
+      exact: true,
+    }),
+  ).toBeEnabled();
   await page.getByRole("button", { name: "Abmelden", exact: true }).click();
   await expect(page).toHaveURL(/login/);
+  await expect(staleTab).toHaveURL(/login/);
+  expect((await deviceState(page)).revoked).toBe(true);
+  expect((await deviceState(page)).snapshot).toBeNull();
+  expect((await deviceState(page)).drafts).toEqual([]);
+  await staleTab.goto("/offline");
+  await expect(
+    staleTab.getByText(/kein aktives Training verfügbar/),
+  ).toBeVisible();
+  await staleTab.close();
   await page.goto("/plans");
   await expect(page).toHaveURL(/login/);
   const revoked = await request.get("/api/plans", {

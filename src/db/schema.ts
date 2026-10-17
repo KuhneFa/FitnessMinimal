@@ -4,6 +4,7 @@ import {
   integer,
   real,
   index,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
@@ -164,4 +165,60 @@ export const adviceExchanges = sqliteTable(
     position: integer("position").notNull(),
   },
   (table) => [index("advice_exchanges_thread_idx").on(table.threadId)],
+);
+
+export const conversations = sqliteTable("conversations", {
+  id: text("id").primaryKey(),
+  kind: text("kind").notNull(),
+  title: text("title").notNull(),
+  version: integer("version").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+});
+export const conversationMessages = sqliteTable(
+  "conversation_messages",
+  {
+    id: text("id").primaryKey(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    sequence: integer("sequence").notNull(),
+    role: text("role").notNull(),
+    status: text("status").notNull(),
+    text: text("text").notNull(),
+    cards: text("cards").notNull().default("[]"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("conversation_messages_sequence_idx").on(
+      t.conversationId,
+      t.sequence,
+    ),
+  ],
+);
+export const conversationJobs = sqliteTable(
+  "conversation_jobs",
+  {
+    id: text("id").primaryKey(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userMessageId: text("user_message_id")
+      .notNull()
+      .references(() => conversationMessages.id, { onDelete: "cascade" }),
+    assistantMessageId: text("assistant_message_id")
+      .notNull()
+      .references(() => conversationMessages.id, { onDelete: "cascade" }),
+    baseVersion: integer("base_version").notNull(),
+    status: text("status").notNull(),
+    input: text("input").notNull(),
+    error: text("error"),
+    reply: text("reply"),
+    lease: text("lease"),
+    leaseUntil: integer("lease_until"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("conversation_jobs_user_message_idx").on(t.userMessageId),
+    index("conversation_jobs_status_idx").on(t.status, t.createdAt),
+  ],
 );

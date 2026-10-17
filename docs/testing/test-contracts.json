@@ -22,6 +22,7 @@
     "file": "tests/validation.test.ts",
     "contract": "HTTP and workout validation preserve incomplete drafts and reject invalid completion",
     "scenarios": [
+      "conversation contracts reject forged roles, executable cards and ambiguous workout actions",
       "native and JSON login bodies are bounded, reject ambiguous credentials and never echo passwords",
       "JSON rejects oversized bodies, wrong content types, malformed and invalid values",
       "drafts allow incomplete values but completed sets require reps and RIR",
@@ -49,6 +50,7 @@
     "file": "tests/database.test.ts",
     "contract": "repeatable migrations, foreign keys and backward-compatible exercise guidance",
     "scenarios": [
+      "conversations atomically persist, deduplicate, recover leases and survive backup/restore",
       "migrations are repeatable and SQLite enforces foreign keys",
       "exercise guidance migration preserves older library entries and initializes empty guidance"
     ]
@@ -97,6 +99,7 @@
     "file": "tests/ai.test.ts",
     "contract": "subscription transport, stream completeness, inspectable replies and provider failures",
     "scenarios": [
+      "provider adapter validates access before budget, never retries and preserves public failed replies",
       "structured proposal sends only explicit profile and library names, never stores response",
       "API key cannot replace missing subscription grant",
       "incomplete outputs and refusals do not become plans",

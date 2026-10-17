@@ -2,6 +2,7 @@ import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { proposal, assistantInput } from "../tests/fixtures/ai";
+import { randomUUID } from "node:crypto";
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -50,7 +51,86 @@ test("AI routes require login/origin and paid transcription stays disabled even 
       401,
     );
   expect((await request.get("/api/ai/config")).status()).toBe(401);
+  const conversationId = randomUUID();
+  expect(
+    (await request.post("/api/conversations", { data: {} })).status(),
+  ).toBe(401);
+  expect(
+    (await request.get(`/api/conversations/${conversationId}`)).status(),
+  ).toBe(401);
+  expect(
+    (
+      await request.post(`/api/conversations/${conversationId}/messages`, {
+        data: {},
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (await request.delete(`/api/conversations/${conversationId}`)).status(),
+  ).toBe(401);
   await login(page);
+  const headers = { origin: "http://localhost:3100" };
+  expect(
+    (
+      await page.request.post("/api/conversations", {
+        headers: { origin: "https://evil.example" },
+        data: {},
+      })
+    ).status(),
+  ).toBe(403);
+  const created = await page.request.post("/api/conversations", {
+    headers,
+    data: { id: conversationId, kind: "workout", title: "Verbindungstest" },
+  });
+  expect(created.status()).toBe(201);
+  const message = {
+    schemaVersion: 1,
+    clientMessageId: randomUUID(),
+    expectedVersion: 0,
+    text: "Test ohne Modellaufruf",
+  };
+  expect(
+    (
+      await page.request.post(`/api/conversations/${conversationId}/messages`, {
+        headers,
+        data: { ...message, role: "assistant" },
+      })
+    ).status(),
+  ).toBe(400);
+  const queued = await page.request.post(
+    `/api/conversations/${conversationId}/messages`,
+    { headers, data: message },
+  );
+  expect(queued.status()).toBe(202);
+  expect((await queued.json()).workerEnabled).toBe(false);
+  const duplicate = await page.request.post(
+    `/api/conversations/${conversationId}/messages`,
+    { headers, data: message },
+  );
+  expect(duplicate.status()).toBe(200);
+  expect((await duplicate.json()).duplicate).toBe(true);
+  const persisted = await page.request.get(
+    `/api/conversations/${conversationId}`,
+  );
+  expect(persisted.headers()["cache-control"]).toBe("no-store");
+  expect((await persisted.json()).messages).toHaveLength(2);
+  expect(
+    (
+      await page.request.delete(`/api/conversations/${conversationId}`, {
+        headers: { origin: "https://evil.example" },
+      })
+    ).status(),
+  ).toBe(403);
+  expect(
+    (
+      await page.request.delete(`/api/conversations/${conversationId}`, {
+        headers,
+      })
+    ).status(),
+  ).toBe(200);
+  expect(
+    (await page.request.get(`/api/conversations/${conversationId}`)).status(),
+  ).toBe(404);
   const csrf = await page.request.post("/api/ai/accept", {
     headers: { origin: "https://evil.example" },
     data: { name: proposal.name, days: proposal.days },

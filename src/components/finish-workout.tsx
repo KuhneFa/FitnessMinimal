@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Workout } from "@/lib/workouts";
+import { closeDeviceWorkout } from "@/lib/device-storage";
 export function FinishWorkout({
   workout,
   pending,
@@ -44,8 +45,13 @@ export function FinishWorkout({
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             try {
-              localStorage.removeItem("fittrack-recovery");
-            } catch {}
+              await closeDeviceWorkout(workout.id);
+            } catch {
+              setError(
+                "Training auf dem Server abgeschlossen. Lokaler Stand konnte nicht entfernt werden. Bitte Website-Daten im Browser löschen.",
+              );
+              return;
+            }
             router.push(`/history/${workout.id}`);
             router.refresh();
           } catch (e) {

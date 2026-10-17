@@ -124,9 +124,9 @@ export function ChatGptConnection({
       >
         <h2 id="chatgpt-welcome-title">Du verwendest dein ChatGPT-Abo</h2>
         <p>
-          Vorschläge in Fitmin zählen zu deiner ChatGPT-Nutzung. Bei
-          erreichten Limits wird gestoppt; Fitmin verwendet keinen
-          kostenpflichtigen API-Key.
+          Vorschläge in Fitmin zählen zu deiner ChatGPT-Nutzung. Bei erreichten
+          Limits wird gestoppt; Fitmin verwendet keinen kostenpflichtigen
+          API-Key.
         </p>
         <p>
           Verwalte die Freigabe und eventuelle Guthaben-Nutzung in den
@@ -147,10 +147,14 @@ export function ChatGptConnection({
       </dialog>
       <strong>Mit deinem ChatGPT-Abo · ohne API-Key</strong>
       <p className="voice-help">
-        Fitmin nutzt ausschließlich deine freigegebene
-        ChatGPT-Verbindung. Bei einem Limit wird gestoppt. Prüfe in ChatGPT,
-        dass keine zusätzlichen Guthaben-Käufe oder bezahlte Mehrnutzung
-        aktiviert sind.
+        Ein ChatGPT-Konto allein garantiert keinen Modellzugang für Fitmin.
+        Verfügbare Modelle und Nutzung hängen von deinem Konto und seiner
+        Freigabe ab.
+      </p>
+      <p className="voice-help">
+        Fitmin nutzt ausschließlich deine freigegebene ChatGPT-Verbindung. Bei
+        einem Limit wird gestoppt. Prüfe in ChatGPT, dass keine zusätzlichen
+        Guthaben-Käufe oder bezahlte Mehrnutzung aktiviert sind.
       </p>
       <a
         href="https://chatgpt.com/settings/usage"
@@ -162,8 +166,8 @@ export function ChatGptConnection({
       {status?.local === false && (
         <p>
           Die direkte Anmeldung ist in dieser Version nur auf dem Mac verfügbar,
-          auf dem Fitmin lokal läuft. Nutze hier „Über ChatGPT kopieren
-          & importieren“.
+          auf dem Fitmin lokal läuft. Nutze hier „Über ChatGPT kopieren &
+          importieren“.
         </p>
       )}
       {status?.local && (

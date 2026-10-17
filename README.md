@@ -2,6 +2,8 @@
 
 Mobile App für Training, Ernährungstagebuch und KI-Beratung für eine Person. Next.js, TypeScript, Tailwind, SQLite und Drizzle. Persönliche Daten werden auf dem Server gespeichert. Kein Service Worker, kein API-Cache, keine lokale Historien-Datenbank.
 
+Aktueller Arbeitsstand und Einstieg für die Fortsetzung: [PLAN.md](PLAN.md). Die Produktspezifikation und vollständige Aufgabenliste stehen unter [Konzept und phasenweise Roadmap](docs/trainingsbegleiter/README.md), Arbeitsregeln in [AGENTS.md](AGENTS.md). B0 (gemeinsame KI-Schnittstelle) ist lokal abgeschlossen; B1 ergänzt Gesprächsspeicherung, IndexedDB und eine begrenzte Offline-Oberfläche. Trainingschat und Kennenlernen folgen in späteren Phasen. Es wird zunächst lokal entwickelt; Railway und eigene Installationen für Freunde folgen später.
+
 ## Lokal starten
 
 1. Node.js 22 verwenden, passend zu `.nvmrc` und Dockerfile. Bei eingerichtetem nvm im Projektordner `nvm install` und `nvm use` ausführen.
@@ -98,7 +100,11 @@ Browserprüfung nach dem Build: `npx playwright install chromium`, dann `npm run
 
 ## Speicher und Nutzung
 
-Die PWA benötigt Internet zum Öffnen von Seiten. Ein bereits geöffnetes Workout hält ausschließlich offene Eingaben als kleine Recovery-Kopie in `localStorage`, keine Pläne oder Historie. Sobald der Server bestätigt, werden synchronisierte Einträge entfernt. Die Oberfläche unterscheidet ausstehende und bestätigte Speicherung. Bitte vor dem Schließen auf **„Alle Änderungen gespeichert“** achten: Mobile Betriebssysteme garantieren keine Hintergrundausführung. Bei widersprüchlichen Änderungen aus zwei Fenstern wird ein Konflikt angezeigt statt still überschrieben.
+Im Production-Build (`npm run build`, danach `npm start`) bereitet die Trainingsansicht unter HTTPS oder localhost einen Offline-Start vor. Danach lässt sich das aktive Training auch ohne Netz erneut öffnen. IndexedDB hält dafür einen bestätigten Trainingsstand einschließlich der angezeigten Vergleichssätze und separat noch offene Satzeingaben. Alte `fittrack-recovery`-Entwürfe werden erst nach einer erfolgreichen Übernahme gelöscht; beschädigte oder nicht zugehörige Altbestände bleiben erhalten. Der Service Worker speichert ausschließlich die öffentliche Offline-Seite und deren statische Dateien, keine privaten Seiten, API-Antworten oder Anmeldedaten.
+
+Die Oberfläche unterscheidet Speicherung auf dem Gerät und Bestätigung durch den Server. Offene Änderungen werden bei erneuter Verbindung mit derselben Mutations-ID übertragen. Bei unterschiedlichen Eingaben aus mehreren Fenstern bleiben die Varianten sichtbar; ein ausdrücklich bestätigtes Laden des Serverstands verwirft die offenen Werte. Abmelden entfernt lokale Trainingsdaten und sperrt alte Editoren. Offline gibt es stattdessen eine ausdrücklich lokale Löschfunktion, die keine Abmeldung am Server behauptet. Timerbedienung, Trainingsabschluss, andere Seiten und KI-Anfragen benötigen weiterhin eine Verbindung.
+
+`npm run dev` und unverschlüsselter LAN-Zugriff bieten keinen vorbereiteten Offline-Start. Browser können Gerätespeicher entfernen oder verweigern; Fitmin zeigt Speicherfehler an. Für dauerhaft bestätigte Werte vor dem Schließen **„Alle Änderungen gespeichert“** abwarten. Es gibt keine Zusage für iOS-Hintergrundausführung. Die echte Safari-/Home-Bildschirm-Abnahme bleibt separat erforderlich.
 
 Es gibt keinen Service Worker, kein IndexedDB, keine Bilder-/Audiosammlung, keine externen Fonts und keine Analytics. PWA-Icons zusammen unter 20 KB; persönliche Antworten sind `no-store`. Historie und Übungsverlauf werden in Seiten mit je 20 Trainings vom Server geladen. Der Timer zeigt nach Wiederaufnahme die tatsächliche Restzeit, verspricht aber keine Hintergrundalarme.
 

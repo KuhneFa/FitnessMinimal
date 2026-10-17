@@ -63,9 +63,148 @@ const eventStream = (events: unknown[]) =>
     events.map((event) => `data: ${JSON.stringify(event)}`).join("\r\n\r\n"),
   );
 import { scenarios } from "./helpers/scenarios";
+import {
+  createChatGptProvider,
+  requestStructured,
+  AiProviderError,
+  aiErrorResponse,
+} from "../src/lib/ai-provider";
+import { mealRequest } from "../src/lib/nutrition-prompt";
 
 test("subscription transport, stream completeness, inspectable replies and provider failures", () =>
   scenarios([
+    {
+      name: "provider adapter validates access before budget, never retries and preserves public failed replies",
+      run: async () => {
+        let sent = 0,
+          budget = 0;
+        const spec = mealRequest("150 g Joghurt");
+        const transport: typeof fetch = async (url, init) => {
+          sent++;
+          assert.equal(String(url), "https://api.openai.com/v1/responses");
+          assert.equal(
+            (init!.headers as Record<string, string>).Authorization,
+            "Bearer subscription-token",
+          );
+          return sse(
+            envelope({
+              calories: 100,
+              caloriesLow: 90,
+              caloriesHigh: 110,
+              assumptions: "Schätzung",
+              clarification: "",
+            }),
+          );
+        };
+        for (const [patch, code] of [
+          [{ accessToken: undefined }, "connection_required"],
+          [{ scopes: [] }, "permission_denied"],
+          [{ model: undefined }, "invalid_request"],
+        ] as const) {
+          const provider = createChatGptProvider(
+            async () => ({
+              ...account,
+              ...patch,
+              scopes: "scopes" in patch ? [] : account.scopes,
+            }),
+            transport,
+          );
+          await assert.rejects(
+            requestStructured(
+              spec,
+              () => {
+                budget++;
+              },
+              provider,
+            ),
+            (e: unknown) => e instanceof AiProviderError && e.code === code,
+          );
+        }
+        assert.equal(budget, 0);
+        assert.equal(sent, 0);
+        const provider = createChatGptProvider(async () => account, transport);
+        assert.equal(provider.info.paidApiFallback, false);
+        assert.equal(provider.info.capabilities.images, false);
+        assert.equal(provider.info.costSettingsVerifiable, false);
+        assert.equal(
+          (
+            await requestStructured(
+              spec,
+              () => {
+                budget++;
+              },
+              provider,
+            )
+          ).proposal.calories,
+          100,
+        );
+        assert.equal(budget, 1);
+        assert.equal(sent, 1);
+        await assert.rejects(
+          requestStructured(
+            spec,
+            () => {
+              throw new Error("budget exhausted");
+            },
+            provider,
+          ),
+          /budget exhausted/,
+        );
+        assert.equal(sent, 1);
+        let failures = 0;
+        for (const streamed of [false, true]) {
+          const limited = createChatGptProvider(
+            async () => account,
+            async () => {
+              failures++;
+              const failure = {
+                error: {
+                  code: "subscription_sharing_usage_limit_exceeded",
+                  message: "provider secret",
+                },
+              };
+              return streamed
+                ? eventStream([{ type: "response.failed", response: failure }])
+                : Response.json(failure, { status: 429 });
+            },
+          );
+          await assert.rejects(
+            requestStructured(spec, () => {}, limited),
+            (e: unknown) =>
+              e instanceof AiProviderError &&
+              e.code === "limited" &&
+              !e.message.includes("provider secret"),
+          );
+        }
+        assert.equal(failures, 2);
+        const invalid = createChatGptProvider(
+          async () => account,
+          async () => sse(envelope({ calories: 900000 })),
+        );
+        await assert.rejects(
+          requestStructured(spec, () => {}, invalid),
+          (e: unknown) =>
+            e instanceof AiProviderError &&
+            e.code === "invalid_response" &&
+            !!e.reply?.text.includes("900000"),
+        );
+        const unknown = createChatGptProvider(async () => {
+          throw new Error("secret token");
+        });
+        try {
+          await requestStructured(spec, () => {}, unknown);
+          assert.fail("must reject");
+        } catch (e) {
+          const response = aiErrorResponse(e);
+          assert.equal(response.status, 502);
+          assert.equal(response.headers.get("cache-control"), "no-store");
+          assert.equal(
+            JSON.stringify(await response.json()).includes("secret token"),
+            false,
+          );
+        }
+      },
+    },
     {
       name: "structured proposal sends only explicit profile and library names, never stores response",
       run: async () => {

@@ -64,6 +64,13 @@
       "when": 1791407606886,
       "tag": "0008_wide_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792252493666,
+      "tag": "0009_greedy_impossible_man",
+      "breakpoints": true
     }
   ]
 }

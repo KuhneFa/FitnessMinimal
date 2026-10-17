@@ -20,7 +20,7 @@ test("durability through abrupt restart and persistent-volume enforcement", () =
             "--import",
             "tsx",
             "-e",
-            'const {getDatabase}=require("./src/db/index.ts"); getDatabase().sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("restart-proof","80x10-RIR2"); process.kill(process.pid,"SIGKILL");',
+            'const {getDatabase}=require("./src/db/index.ts"); getDatabase().sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("restart-proof","80x10-RIR2"); const chat=require("./src/lib/conversations.ts"); const id="10000000-0000-4000-8000-000000000001"; chat.createConversation({id,kind:"workout",title:"Crash test"}); chat.enqueueMessage(id,{schemaVersion:1,clientMessageId:"10000000-0000-4000-8000-000000000002",expectedVersion:0,text:"Vor Absturz gespeichert"}); process.kill(process.pid,"SIGKILL");',
           ],
           { env, encoding: "utf8" },
         );
@@ -31,7 +31,7 @@ test("durability through abrupt restart and persistent-volume enforcement", () =
             "--import",
             "tsx",
             "-e",
-            'const {getDatabase}=require("./src/db/index.ts"); console.log(getDatabase().sqlite.prepare("SELECT value FROM settings WHERE key=?").get("restart-proof").value);',
+            'const {getDatabase}=require("./src/db/index.ts"); const assert=require("node:assert/strict"); const {getConversation}=require("./src/lib/conversations.ts"); const chat=getConversation("10000000-0000-4000-8000-000000000001"); assert.equal(chat.messages[0].text,"Vor Absturz gespeichert"); assert.equal(chat.jobs[0].status,"queued"); console.log(getDatabase().sqlite.prepare("SELECT value FROM settings WHERE key=?").get("restart-proof").value);',
           ],
           { env, encoding: "utf8" },
         );

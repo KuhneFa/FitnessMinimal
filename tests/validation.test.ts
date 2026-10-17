@@ -10,9 +10,99 @@ import {
   loginRedirect,
 } from "../src/lib/login";
 import { scenarios } from "./helpers/scenarios";
+import {
+  messageInputSchema,
+  conversationMessageSchema,
+  conversationCardSchema,
+  workoutActionSchema,
+} from "../src/lib/conversation-contract";
 
 test("HTTP and workout validation preserve incomplete drafts and reject invalid completion", () =>
   scenarios([
+    {
+      name: "conversation contracts reject forged roles, executable cards and ambiguous workout actions",
+      run: () => {
+        const id = randomUUID();
+        const input = {
+          schemaVersion: 1,
+          clientMessageId: id,
+          expectedVersion: 0,
+          text: "Los geht's",
+        };
+        assert.equal(messageInputSchema.safeParse(input).success, true);
+        for (const patch of [
+          { role: "assistant" },
+          { text: " " },
+          { text: "x".repeat(6001) },
+          { expectedVersion: -1 },
+          { schemaVersion: 2 },
+        ])
+          assert.equal(
+            messageInputSchema.safeParse({ ...input, ...patch }).success,
+            false,
+          );
+        const card = {
+          type: "exercise",
+          workout: { id, version: 0 },
+          exerciseId: randomUUID(),
+        };
+        assert.equal(conversationCardSchema.safeParse(card).success, true);
+        for (const patch of [
+          { html: "<script>bad()</script>" },
+          { reps: 900 },
+          { type: "execute_sql" },
+        ])
+          assert.equal(
+            conversationCardSchema.safeParse({ ...card, ...patch }).success,
+            false,
+          );
+        const message = {
+          schemaVersion: 1,
+          id,
+          conversationId: randomUUID(),
+          sequence: 0,
+          role: "app",
+          status: "completed",
+          text: "",
+          cards: [card],
+          createdAt: 1,
+        };
+        assert.equal(
+          conversationMessageSchema.safeParse(message).success,
+          true,
+        );
+        assert.equal(
+          conversationMessageSchema.safeParse({
+            ...message,
+            cards: Array(13).fill(card),
+          }).success,
+          false,
+        );
+        const action = {
+          schemaVersion: 1,
+          mutationId: id,
+          expectedVersion: 0,
+          action: "complete_exercise",
+          exerciseId: randomUUID(),
+        };
+        assert.equal(workoutActionSchema.safeParse(action).success, true);
+        assert.equal(
+          workoutActionSchema.safeParse({ ...action, exerciseId: undefined })
+            .success,
+          false,
+        );
+        assert.equal(
+          workoutActionSchema.safeParse({ ...action, action: "resume" })
+            .success,
+          false,
+        );
+        assert.equal(
+          workoutActionSchema.safeParse({ ...action, action: "finish_workout" })
+            .success,
+          false,
+        );
+      },
+    },
     {
       name: "native and JSON login bodies are bounded, reject ambiguous credentials and never echo passwords",
       run: async () => {

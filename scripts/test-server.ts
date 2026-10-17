@@ -13,6 +13,7 @@ const env = {
   APP_ORIGIN: "http://localhost:3100",
   // Browser tests mock AI responses; never use a developer's real API key.
   OPENAI_API_KEY: "e2e-paid-key-must-never-be-used",
+  FITMIN_CHAT_WORKER: "0",
 };
 const seed = spawnSync(
   process.execPath,

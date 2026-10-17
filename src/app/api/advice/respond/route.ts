@@ -1,5 +1,5 @@
 import { getDatabase } from "@/db";
-import { authorize, readJson, json, errorResponse } from "@/lib/http";
+import { authorize, readJson, json } from "@/lib/http";
 import { adviceActionSchema } from "@/lib/advice-contract";
 import {
   assertAdviceVersion,
@@ -9,11 +9,8 @@ import {
 import { adviceRequest } from "@/lib/advice-prompt";
 import { manualNutritionPrompt } from "@/lib/nutrition-prompt";
 import { consumeAiBudget } from "@/lib/ai-budget";
-import {
-  requestStructuredWithChatGpt,
-  PlanGenerationError,
-} from "@/lib/openai";
-import { activeChatGptAccount } from "@/lib/chatgpt-oauth";
+import { PlanGenerationError } from "@/lib/openai";
+import { requestStructured, aiErrorResponse } from "@/lib/ai-provider";
 import { modelReply } from "@/lib/plan-response";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
@@ -43,9 +40,9 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      const account = await activeChatGptAccount();
-      consumeAiBudget(getDatabase().sqlite, "plan");
-      generated = await requestStructuredWithChatGpt(spec, account);
+      generated = await requestStructured(spec, () =>
+        consumeAiBudget(getDatabase().sqlite, "plan"),
+      );
     }
     try {
       return json({
@@ -71,8 +68,6 @@ export async function POST(request: Request) {
       );
     }
   } catch (e) {
-    if (e instanceof PlanGenerationError)
-      return json({ error: e.message, reply: e.reply }, e.status);
-    return errorResponse(e);
+    return aiErrorResponse(e);
   }
 }
